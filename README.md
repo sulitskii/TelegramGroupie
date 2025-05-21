@@ -93,7 +93,7 @@ deactivate
 
 ### 4. Environment Variables
 Set the following environment variables when deploying:
-- `TELEGRAM_TOKEN`: Your Telegram bot token
+- `TELEGRAM_TOKEN`: Your Telegram bot token (from @BotFather)
 - `WEBHOOK_SECRET`: A random secret string for securing the webhook endpoint
 
 ### 5. Local Development
@@ -186,3 +186,39 @@ The test suite includes:
 
 ## Next Steps
 - Implement your message processing logic in `process_message()` in `main.py`.
+
+## Version Control
+This project uses Git for version control. Here are some common commands:
+
+```sh
+# Initialize Git repository (already done)
+git init
+
+# Check status of your changes
+git status
+
+# Add all changes
+git add .
+
+# Commit changes
+git commit -m "Your commit message"
+
+# Create a new branch
+git checkout -b feature/your-feature-name
+
+# Switch branches
+git checkout branch-name
+
+# Push changes to remote repository
+git push origin branch-name
+
+# Pull latest changes
+git pull origin main
+```
+
+### Git Configuration
+If you haven't set up Git yet, configure your identity:
+```sh
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
