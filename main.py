@@ -6,26 +6,28 @@ from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
 app = Flask(__name__)
 
+# Telegram configuration
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
 
-# Initialize the application
+# Initialize Telegram application
 application = Application.builder().token(TELEGRAM_TOKEN).build()
 
 logging.basicConfig(level=logging.INFO)
 
-# Stub processing function
+# Telegram message processing
 async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info(f"Received message: {update.message.text}")
-    # TODO: Implement processing logic here
+    # TODO: Implement message processing logic here
 
-# Handler for all group messages
+# Telegram handler for all group messages
 async def group_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await process_message(update, context)
 
-# Add handler
+# Add Telegram handler
 application.add_handler(MessageHandler(filters.ChatType.GROUPS, group_message_handler))
 
+# Telegram webhook endpoint
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 async def webhook():
     if request.method == "POST":
