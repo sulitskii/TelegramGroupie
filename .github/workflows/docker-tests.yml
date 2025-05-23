@@ -80,12 +80,12 @@ jobs:
           ls -la test-results/
         fi
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
+    - name: Upload Docker test results
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: docker-test-results
-        path: test-results/
+        path: docker-test-results.json
 
     - name: Collect Docker logs
       if: failure()

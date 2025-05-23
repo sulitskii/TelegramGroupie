@@ -111,7 +111,7 @@ jobs:
         docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ || true
 
     - name: Upload Docker test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: docker-test-results-ci
@@ -150,12 +150,11 @@ jobs:
       run: |
         python -m pytest tests/unit/ tests/integration/ --cov=. --cov-report=xml --cov-report=term-missing -m "unit or integration"
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
       with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+        name: coverage-report
+        path: coverage.xml
 
   # ==============================================
   # Final Status Check
