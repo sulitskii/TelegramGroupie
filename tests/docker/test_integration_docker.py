@@ -4,9 +4,9 @@ This module contains essential Docker-based integration tests for the TelegramGr
 application, focusing on core functionality in a containerized environment.
 """
 
+import concurrent.futures
 import os
 import time
-import concurrent.futures
 
 import pytest
 import requests
@@ -122,6 +122,7 @@ class TestDockerReliability:
 
     def test_concurrent_requests(self, api_client):
         """Test concurrent request handling."""
+
         def make_request():
             try:
                 response = requests.get(f"{api_client}/healthz", timeout=10)
