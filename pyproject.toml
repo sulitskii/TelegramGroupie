@@ -141,6 +141,7 @@ ignore = [
     "RET504", # Unnecessary assignment before return
     "G004",   # Logging statement uses f-string (OK for readability)
     "COM812", # Trailing comma missing (conflicts with formatter)
+    "LOG015", # Exception/info calls on root logger (OK for simple apps)
 ]
 
 [tool.ruff.lint.per-file-ignores]
