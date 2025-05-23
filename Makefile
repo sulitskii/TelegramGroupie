@@ -256,29 +256,59 @@ requirements-check: ## Check for outdated dependencies
 # Testing Commands
 # ==============================================
 
-test: test-unit test-integration ## Run all tests (unit + integration)
-	@echo "🎉 All tests completed successfully!"
-
-test-unit: ## Run unit tests only
+# Fast unit tests (isolated, no external dependencies)
+test-unit: ## Run unit tests only (fast, isolated)
 	@echo "🧪 Running unit tests..."
-	python -m pytest tests/test_main.py tests/test_encryption.py tests/test_message_retrieval.py -v
+	python -m pytest tests/unit/ -v --tb=short -m "unit"
 
+# Integration tests with mock services
 test-integration: ## Run integration tests (with mocks)
 	@echo "🧪 Running integration tests..."
-	TESTING=true python -m pytest tests/test_integration.py -v
+	TESTING=true python -m pytest tests/integration/ -v --tb=short -m "integration"
 
-test-all: ## Run comprehensive test suite
-	@echo "🧪 Running all tests..."
-	python -m pytest tests/ -v
+# Docker-based integration tests
+test-docker: ## Run Docker-specific integration tests
+	@echo "🐳 Running Docker integration tests..."
+	python -m pytest tests/docker/ -v -m "docker"
 
+# All tests except Docker (for CI/CD)
+test-ci: ## Run unit and integration tests (excludes Docker)
+	@echo "🧪 Running CI/CD test suite..."
+	python -m pytest tests/unit/ tests/integration/ -v --tb=short -m "unit or integration"
+
+# Complete test suite (all tests)
+test: test-unit test-integration ## Run all non-Docker tests (unit + integration)
+	@echo "🎉 All non-Docker tests completed successfully!"
+
+# Complete test suite including Docker
+test-all: test-unit test-integration test-docker ## Run comprehensive test suite (includes Docker)
+	@echo "🎉 All tests completed successfully!"
+
+# Test with coverage
 test-coverage: ## Run tests with coverage report
 	@echo "📊 Running tests with coverage..."
+	python -m pytest tests/unit/ tests/integration/ --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml -m "unit or integration"
+	@echo "📋 Coverage report generated in htmlcov/"
+
+# Test coverage including Docker tests
+test-coverage-all: ## Run all tests with coverage report
+	@echo "📊 Running all tests with coverage..."
 	python -m pytest tests/ --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml
 	@echo "📋 Coverage report generated in htmlcov/"
 
-test-docker: ## Run Docker-specific integration tests
-	@echo "🐳 Running Docker integration tests..."
-	python -m pytest tests/test_integration_docker.py -v -m docker
+# Quick smoke test (fastest tests only)
+test-smoke: ## Run quick smoke tests
+	@echo "💨 Running smoke tests..."
+	python -m pytest tests/unit/test_main.py::test_healthz_endpoint -v
+
+# Run specific test markers
+test-fast: ## Run only fast tests (excludes slow and docker)
+	@echo "⚡ Running fast tests..."
+	python -m pytest tests/ -v -m "not slow and not docker"
+
+test-slow: ## Run only slow tests
+	@echo "🐌 Running slow tests..."
+	python -m pytest tests/ -v -m "slow"
 
 # ==============================================
 # Code Quality Commands

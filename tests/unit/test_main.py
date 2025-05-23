@@ -1,8 +1,18 @@
+"""
+Unit Tests for Flask Application Core
+
+Tests the main Flask application functionality including health endpoints,
+webhook processing, and message handling using mocks for external dependencies.
+"""
+
 import json
 import sys
 from unittest.mock import Mock, patch
 
 import pytest
+
+# Mark all tests in this file as unit tests
+pytestmark = pytest.mark.unit
 
 # Mock telegram imports
 sys.modules["telegram"] = Mock()

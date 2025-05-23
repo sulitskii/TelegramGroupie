@@ -1,0 +1,100 @@
+name: 🐳 Docker Integration Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Run weekly to ensure Docker environment stability
+  schedule:
+    - cron: '0 2 * * 0'  # Sunday at 2 AM UTC
+
+permissions:
+  contents: read
+
+jobs:
+  # ==============================================
+  # Docker Integration Tests
+  # ==============================================
+  docker-tests:
+    name: 🐳 Docker Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+        
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest requests
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build Docker image
+      run: |
+        docker build -t telegramgroupie:test .
+        
+    - name: Run basic Docker test
+      run: |
+        bash scripts/run-basic-docker-test.sh
+        
+    - name: Run Docker integration tests
+      run: |
+        # Start container for testing
+        docker run -d \
+          --name telegramgroupie-test \
+          -p 8081:8080 \
+          -e TESTING=true \
+          -e GCP_PROJECT_ID=test-project \
+          -e WEBHOOK_SECRET=test_webhook_secret_123 \
+          telegramgroupie:test
+          
+        # Wait for container to be ready
+        sleep 10
+        
+        # Run pytest against the running container
+        APP_URL=http://localhost:8081 python -m pytest tests/docker/ -v -m "docker"
+        
+    - name: Cleanup Docker containers
+      if: always()
+      run: |
+        docker stop telegramgroupie-test || true
+        docker rm telegramgroupie-test || true
+        
+    - name: Collect Docker logs
+      if: failure()
+      run: |
+        docker logs telegramgroupie-test || true
+
+  # ==============================================
+  # Docker Compose Tests (Optional)
+  # ==============================================
+  docker-compose-tests:
+    name: 🐳 Docker Compose Tests
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'  # Skip on PRs to save resources
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Run minimal Docker Compose test
+      run: |
+        if [ -f docker-compose.minimal.yml ]; then
+          docker-compose -f docker-compose.minimal.yml up --build --abort-on-container-exit
+        else
+          echo "🚨 docker-compose.minimal.yml not found, skipping compose tests"
+        fi
+        
+    - name: Cleanup Docker Compose
+      if: always()
+      run: |
+        docker-compose -f docker-compose.minimal.yml down -v --remove-orphans || true 

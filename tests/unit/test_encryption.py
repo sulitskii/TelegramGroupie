@@ -1,4 +1,13 @@
+"""
+Unit Tests for Encryption Module
+
+Tests the encryption and decryption functionality using mocks for
+Google Cloud KMS to ensure fast, isolated unit testing.
+"""
+
 import sys
+import base64
+import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -15,6 +24,9 @@ with (
     mock_firestore.return_value = Mock()
     mock_kms.return_value = Mock()
     from encryption import MessageEncryption
+
+# Mark all tests in this file as unit tests
+pytestmark = pytest.mark.unit
 
 
 @pytest.fixture

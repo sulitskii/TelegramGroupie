@@ -1,7 +1,8 @@
 """Docker-based Integration Tests for TelegramGroupie
 
 This module contains Docker-based integration tests for the TelegramGroupie
-application, testing containerized deployment scenarios and service interactions.
+application, testing containerized deployment scenarios and service interactions
+in production-like environments.
 """
 
 import os
@@ -15,6 +16,9 @@ APP_URL = os.environ.get("APP_URL", "http://app:8080")
 FIRESTORE_EMULATOR_HOST = os.environ.get(
     "FIRESTORE_EMULATOR_HOST", "firestore-emulator:8081"
 )
+
+# Mark all tests in this file as docker tests
+pytestmark = pytest.mark.docker
 
 
 def wait_for_service(url, timeout=60, interval=2):
