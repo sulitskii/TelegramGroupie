@@ -84,41 +84,43 @@ jobs:
         path: bandit-report.json
 
   # ==============================================
-  # CodeQL Analysis (Optimized)
+  # CodeQL Analysis (Requires GitHub Advanced Security)
   # ==============================================
-  codeql-analysis:
-    name: 🔎 CodeQL Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    # Only run CodeQL on main branch and important PRs
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: python
-        # Use security queries for focused analysis
-        queries: security-extended
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:python"
+  # DISABLED: Requires GitHub Advanced Security for private repos
+  # Uncomment and enable "Code scanning" in repository settings to use
+  # codeql-analysis:
+  #   name: 🔎 CodeQL Analysis
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     actions: read
+  #     contents: read
+  #     security-events: write
+  #   # Only run CodeQL on main branch and important PRs
+  #   if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+  #
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+  #
+  #   - name: Set up Python
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: ${{ env.PYTHON_VERSION }}
+  #
+  #   - name: Initialize CodeQL
+  #     uses: github/codeql-action/init@v2
+  #     with:
+  #       languages: python
+  #       # Use security queries for focused analysis
+  #       queries: security-extended
+  #
+  #   - name: Autobuild
+  #     uses: github/codeql-action/autobuild@v2
+  #
+  #   - name: Perform CodeQL Analysis
+  #     uses: github/codeql-action/analyze@v2
+  #     with:
+  #       category: "/language:python"
 
   # ==============================================
   # Quality Gate
@@ -126,7 +128,7 @@ jobs:
   quality-gate:
     name: 🎯 Quality Gate
     runs-on: ubuntu-latest
-    needs: [ruff-analysis, security-scan, codeql-analysis]
+    needs: [ruff-analysis, security-scan]
     if: always()
     
     steps:
@@ -135,7 +137,7 @@ jobs:
         echo "=== Quality Gate Results ==="
         echo "🔍 Ruff Analysis: ${{ needs.ruff-analysis.result }}"
         echo "🛡️ Security Scan: ${{ needs.security-scan.result }}"
-        echo "🔎 CodeQL Analysis: ${{ needs.codeql-analysis.result }}"
+        echo "🔎 CodeQL Analysis: DISABLED (requires GitHub Advanced Security)"
         
         # Ruff must pass for code quality
         if [[ "${{ needs.ruff-analysis.result }}" != "success" ]]; then
@@ -149,11 +151,6 @@ jobs:
           echo "⚠️ Security scan had issues - please review"
         fi
         
-        # CodeQL can warn but not fail the build
-        if [[ "${{ needs.codeql-analysis.result }}" != "success" ]]; then
-          echo "⚠️ CodeQL analysis had issues - please review"
-        fi
-        
         echo "✅ Quality gate passed!"
 
   # ==============================================
@@ -162,7 +159,7 @@ jobs:
   analysis-summary:
     name: 📋 Analysis Summary
     runs-on: ubuntu-latest
-    needs: [ruff-analysis, security-scan, codeql-analysis]
+    needs: [ruff-analysis, security-scan]
     if: always()
     
     steps:
@@ -188,7 +185,7 @@ jobs:
         echo "|------|--------|-------|" >> analysis-summary.md
         echo "| Ruff Linter | ${{ needs.ruff-analysis.result }} | Code quality and formatting |" >> analysis-summary.md
         echo "| Security Scan | ${{ needs.security-scan.result }} | Security vulnerability check |" >> analysis-summary.md
-        echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result }} | Advanced security analysis |" >> analysis-summary.md
+        echo "| CodeQL Analysis | DISABLED | Requires GitHub Advanced Security |" >> analysis-summary.md
         echo "" >> analysis-summary.md
         
         # Count Python files
