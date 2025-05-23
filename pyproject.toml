@@ -251,7 +251,13 @@ directory = "htmlcov"
 [tool.pytest.ini_options]
 # Pytest configuration
 minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = [
+    "-ra",
+    "-q", 
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+]
 testpaths = ["tests"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -266,18 +272,6 @@ python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-
-# Test discovery and organization
 norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv"]
-testpaths = ["tests"]
-
-# Coverage integration
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--disable-warnings",
-]
-
-# Timeout for tests (30 seconds default)
 timeout = 30
 timeout_method = "thread" 
