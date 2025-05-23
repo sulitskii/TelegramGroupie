@@ -52,7 +52,7 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 echo "🏗️  Building Docker image..."
-IMAGE_NAME="gcr.io/${PROJECT_ID}/telegram2whatsapp"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/telegramgroupie"
 
 # Build the image
 gcloud builds submit --tag ${IMAGE_NAME}
@@ -62,16 +62,17 @@ echo "🚀 Deploying to Cloud Run..."
 REGION=$(gcloud config get-value compute/region 2>/dev/null || echo "us-central1")
 
 # Deploy to Cloud Run
-gcloud run deploy telegram2whatsapp \
+gcloud run deploy telegramgroupie \
     --image ${IMAGE_NAME} \
     --platform managed \
     --region ${REGION} \
-    --allow-unauthenticated
+    --allow-unauthenticated \
+    --port 8080
 
 echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
 
 # Get the service URL
-SERVICE_URL=$(gcloud run services describe telegram2whatsapp --platform managed --region ${REGION} --format 'value(status.url)')
+SERVICE_URL=$(gcloud run services describe telegramgroupie --platform managed --region ${REGION} --format 'value(status.url)')
 
 echo "🌐 Your service is available at: ${SERVICE_URL}"
 echo "📝 Don't forget to set up your webhook with:"

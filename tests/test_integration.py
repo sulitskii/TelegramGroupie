@@ -1,8 +1,9 @@
 """
-Integration Tests for telegram2whatsapp
+Integration Tests for TelegramGroupie
 
-These tests run against the actual Flask application and test
-end-to-end functionality including API endpoints.
+This module contains comprehensive integration tests for the TelegramGroupie
+application using mock services for fast, reliable testing without external
+dependencies.
 """
 
 import os

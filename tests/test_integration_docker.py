@@ -1,8 +1,7 @@
-"""
-Docker-based Integration Tests for telegram2whatsapp
+"""Docker-based Integration Tests for TelegramGroupie
 
-These tests run against the containerized Flask application and test
-end-to-end functionality using Docker networking.
+This module contains Docker-based integration tests for the TelegramGroupie
+application, testing containerized deployment scenarios and service interactions.
 """
 
 import os

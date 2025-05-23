@@ -5,12 +5,12 @@
 
 set -e
 
-echo "🐳 Basic Docker Integration Test for telegram2whatsapp"
+echo "🐳 Basic Docker Integration Test for TelegramGroupie"
 echo "======================================================"
 
 # Configuration
-IMAGE_NAME="telegram2whatsapp:test"
-CONTAINER_NAME="telegram2whatsapp-test"
+IMAGE_NAME="telegramgroupie:test"
+CONTAINER_NAME="telegramgroupie-test"
 TEST_PORT="8081"
 
 # Cleanup function

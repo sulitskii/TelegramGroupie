@@ -1,6 +1,6 @@
-# Docker-Based Integration Testing Guide
+# Docker Testing Guide
 
-This guide explains how to set up and run integration tests using Docker containers for the telegram2whatsapp project.
+This guide explains how to set up and run integration tests using Docker containers for the TelegramGroupie project.
 
 ## 🎯 **Overview**
 
