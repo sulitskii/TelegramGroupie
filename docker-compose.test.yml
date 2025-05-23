@@ -14,12 +14,19 @@ services:
     depends_on:
       firestore-emulator:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Firestore emulator for database testing
   firestore-emulator:
     image: gcr.io/google.com/cloudsdktool/cloud-sdk:alpine
     command: >
-      sh -c "gcloud components install cloud-firestore-emulator --quiet &&
+      sh -c "apk add --no-cache openjdk11-jre && 
+             gcloud components install beta cloud-firestore-emulator --quiet &&
              gcloud beta emulators firestore start --host-port=0.0.0.0:8080"
     ports:
       - "8081:8080"
@@ -31,8 +38,8 @@ services:
       test: ["CMD", "nc", "-z", "localhost", "8080"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 3
+      start_period: 45s
 
   # Test runner service
   test-runner:
@@ -55,4 +62,4 @@ services:
 
 networks:
   test-network:
-    driver: bridge 
+    driver: bridge

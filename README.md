@@ -1,4 +1,6 @@
-# TelegramGroupie
+# TelegramGroupie 🚀
+
+<!-- Workflow updated: CodeQL removed for streamlined CI/CD -->
 
 A smart, cloud-native Flask application for Telegram group management and message bridging, with end-to-end encryption and cloud storage.
 
@@ -90,7 +92,7 @@ bash scripts/run-basic-docker-test.sh
 # Full integration tests with Docker Compose
 make docker-test-minimal
 
-# Build and test individually  
+# Build and test individually
 docker build -t telegramgroupie:test .
 docker run -d -p 8081:8080 -e TESTING=true telegramgroupie:test
 curl http://localhost:8081/healthz

@@ -153,7 +153,7 @@ test-results/
 # Open HTML test report
 open test-results/report.html
 
-# Open coverage report  
+# Open coverage report
 open test-results/coverage/index.html
 
 # View test summary
@@ -292,18 +292,18 @@ on: [push, pull_request]
 jobs:
   docker-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    
+
     - name: Run Docker Integration Tests
       run: |
         chmod +x scripts/run-docker-tests.sh
         ./scripts/run-docker-tests.sh --clean
-    
+
     - name: Upload Test Results
       uses: actions/upload-artifact@v3
       if: always()
@@ -372,4 +372,4 @@ If you encounter issues:
 2. Review container logs: `make docker-test-logs`
 3. Run in debug mode: `make docker-test-debug`
 4. Check Docker system status: `docker system df`
-5. Clean Docker system: `docker system prune -f` 
+5. Clean Docker system: `docker system prune -f`

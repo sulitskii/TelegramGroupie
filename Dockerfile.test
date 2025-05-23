@@ -26,4 +26,4 @@ ENV PYTHONPATH=/app
 ENV TESTING=true
 
 # Default command to run tests
-CMD ["python", "-m", "pytest", "tests/docker/", "-v", "-m", "docker", "--junitxml=test-results/docker-tests.xml"] 
+CMD ["python", "-m", "pytest", "tests/docker/", "-v", "-m", "docker", "--junitxml=test-results/docker-tests.xml"]
