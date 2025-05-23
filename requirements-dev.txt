@@ -22,7 +22,7 @@ types-urllib3>=1.26.25
 
 # Security Analysis
 bandit[toml]>=1.7.9
-safety>=4.0.0
+safety>=2.0.0,<4.0.0
 semgrep>=1.122.0
 pip-audit>=2.9.0
 
