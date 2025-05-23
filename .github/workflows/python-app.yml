@@ -36,6 +36,8 @@ jobs:
         pip install -r requirements-dev.txt
         
     - name: Run unit tests
+      env:
+        TESTING: true
       run: |
         python -m pytest tests/unit/ -v --tb=short -m "unit"
 
