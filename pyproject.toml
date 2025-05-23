@@ -250,26 +250,14 @@ directory = "htmlcov"
 [tool.pytest.ini_options]
 # Pytest configuration
 minversion = "6.0"
-addopts = [
-    "-ra",
-    "-q",
-    "--strict-markers",
-    "--strict-config",
-    "--disable-warnings",
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
 ]
-testpaths = ["tests"]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "unit: marks tests as unit tests (fast, isolated)",
-    "integration: marks tests as integration tests (with mocks)",
-    "docker: marks tests as docker-based integration tests (requires Docker)",
-    "requires_auth: marks tests that require real authentication",
-    "network: marks tests that require network access",
-    "e2e: marks tests as end-to-end tests (full system)",
-    "performance: marks tests as performance tests",
+    "docker: marks tests as Docker integration tests",
+    "slow: marks tests as slow running",
 ]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 asyncio_mode = "auto"
-norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv"]
+asyncio_default_fixture_loop_scope = "function"
