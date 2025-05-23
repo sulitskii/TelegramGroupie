@@ -126,7 +126,7 @@ jobs:
   quality-gate:
     name: 🎯 Quality Gate
     runs-on: ubuntu-latest
-    needs: [ruff-analysis, security-scan]
+    needs: [ruff-analysis, security-scan, codeql-analysis]
     if: always()
     
     steps:
@@ -135,6 +135,7 @@ jobs:
         echo "=== Quality Gate Results ==="
         echo "🔍 Ruff Analysis: ${{ needs.ruff-analysis.result }}"
         echo "🛡️ Security Scan: ${{ needs.security-scan.result }}"
+        echo "🔎 CodeQL Analysis: ${{ needs.codeql-analysis.result }}"
         
         # Ruff must pass for code quality
         if [[ "${{ needs.ruff-analysis.result }}" != "success" ]]; then
@@ -148,6 +149,11 @@ jobs:
           echo "⚠️ Security scan had issues - please review"
         fi
         
+        # CodeQL can warn but not fail the build
+        if [[ "${{ needs.codeql-analysis.result }}" != "success" ]]; then
+          echo "⚠️ CodeQL analysis had issues - please review"
+        fi
+        
         echo "✅ Quality gate passed!"
 
   # ==============================================
@@ -156,7 +162,7 @@ jobs:
   analysis-summary:
     name: 📋 Analysis Summary
     runs-on: ubuntu-latest
-    needs: [ruff-analysis, security-scan]
+    needs: [ruff-analysis, security-scan, codeql-analysis]
     if: always()
     
     steps:
@@ -182,6 +188,7 @@ jobs:
         echo "|------|--------|-------|" >> analysis-summary.md
         echo "| Ruff Linter | ${{ needs.ruff-analysis.result }} | Code quality and formatting |" >> analysis-summary.md
         echo "| Security Scan | ${{ needs.security-scan.result }} | Security vulnerability check |" >> analysis-summary.md
+        echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result }} | Advanced security analysis |" >> analysis-summary.md
         echo "" >> analysis-summary.md
         
         # Count Python files
