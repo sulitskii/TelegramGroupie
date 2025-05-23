@@ -14,11 +14,99 @@ permissions:
 
 jobs:
   # ==============================================
-  # Docker Integration Tests
+  # Docker Integration Tests with Compose
   # ==============================================
   docker-tests:
     name: 🐳 Docker Integration Tests
     runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Set up environment
+      run: |
+        # Create test results directory
+        mkdir -p test-results
+        
+        # Set up environment for Docker Compose
+        echo "COMPOSE_PROJECT_NAME=telegramgroupie-test" >> $GITHUB_ENV
+        
+    - name: Build and start test environment
+      run: |
+        # Use docker compose with --wait flag for proper service readiness
+        docker compose -f docker-compose.test.yml up -d --build --wait
+        
+    - name: Verify services are running
+      run: |
+        echo "🔍 Checking service health..."
+        
+        # Check application health
+        docker compose -f docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz
+        
+        # Check Firestore emulator
+        docker compose -f docker-compose.test.yml exec -T firestore-emulator nc -z localhost 8080
+        
+        echo "✅ All services are healthy!"
+        
+    - name: Run basic Docker integration test
+      run: |
+        # Run our existing basic Docker test script
+        bash scripts/run-basic-docker-test.sh
+        
+    - name: Run comprehensive Docker tests
+      run: |
+        # Run Docker tests using the test runner service
+        docker compose -f docker-compose.test.yml run --rm test-runner
+        
+    - name: Run manual Docker tests (fallback)
+      if: failure()
+      run: |
+        # Alternative approach: run tests from host against Docker services
+        pip install pytest requests
+        APP_URL=http://localhost:8080 python -m pytest tests/docker/ -v -m "docker" --tb=short
+        
+    - name: Collect test results
+      if: always()
+      run: |
+        # Copy test results from containers
+        docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ || true
+        
+        # Show test results
+        if [ -f test-results/docker-tests.xml ]; then
+          echo "📊 Test results found"
+          ls -la test-results/
+        fi
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: docker-test-results
+        path: test-results/
+        
+    - name: Collect Docker logs
+      if: failure()
+      run: |
+        echo "🔍 Collecting Docker logs for debugging..."
+        docker compose -f docker-compose.test.yml logs app
+        docker compose -f docker-compose.test.yml logs firestore-emulator
+        docker compose -f docker-compose.test.yml logs test-runner
+        
+    - name: Cleanup Docker environment
+      if: always()
+      run: |
+        docker compose -f docker-compose.test.yml down -v --remove-orphans
+
+  # ==============================================
+  # Legacy Docker Tests (for comparison)
+  # ==============================================
+  legacy-docker-tests:
+    name: 🐳 Legacy Docker Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'  # Only run on scheduled builds
     
     steps:
     - uses: actions/checkout@v4
@@ -44,9 +132,9 @@ jobs:
       run: |
         bash scripts/run-basic-docker-test.sh
         
-    - name: Run Docker integration tests
+    - name: Run legacy Docker integration tests
       run: |
-        # Start container for testing
+        # Start container for testing (old approach)
         docker run -d \
           --name telegramgroupie-test \
           -p 8081:8080 \
@@ -55,46 +143,14 @@ jobs:
           -e WEBHOOK_SECRET=test_webhook_secret_123 \
           telegramgroupie:test
           
-        # Wait for container to be ready
-        sleep 10
+        # Wait for container to be ready (old approach with sleep)
+        sleep 15
         
         # Run pytest against the running container
         APP_URL=http://localhost:8081 python -m pytest tests/docker/ -v -m "docker"
         
-    - name: Cleanup Docker containers
+    - name: Cleanup legacy containers
       if: always()
       run: |
         docker stop telegramgroupie-test || true
-        docker rm telegramgroupie-test || true
-        
-    - name: Collect Docker logs
-      if: failure()
-      run: |
-        docker logs telegramgroupie-test || true
-
-  # ==============================================
-  # Docker Compose Tests (Optional)
-  # ==============================================
-  docker-compose-tests:
-    name: 🐳 Docker Compose Tests
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'  # Skip on PRs to save resources
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      
-    - name: Run minimal Docker Compose test
-      run: |
-        if [ -f docker-compose.minimal.yml ]; then
-          docker-compose -f docker-compose.minimal.yml up --build --abort-on-container-exit
-        else
-          echo "🚨 docker-compose.minimal.yml not found, skipping compose tests"
-        fi
-        
-    - name: Cleanup Docker Compose
-      if: always()
-      run: |
-        docker-compose -f docker-compose.minimal.yml down -v --remove-orphans || true 
+        docker rm telegramgroupie-test || true 

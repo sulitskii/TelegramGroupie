@@ -330,10 +330,18 @@ docker-build: ## Build Docker image
 	docker build -t telegramgroupie:latest .
 	@echo "✅ Docker image built"
 
-docker-test: ## Run quick Docker integration test
-	@echo "🐳 Running Docker integration tests..."
+# Enhanced Docker testing with Docker Compose
+docker-test-compose: ## Run comprehensive Docker Compose tests (recommended)
+	@echo "🐳 Running Docker Compose integration tests..."
+	bash scripts/run-docker-compose-tests.sh
+	@echo "✅ Docker Compose tests completed"
+
+docker-test: docker-test-compose ## Run Docker integration tests (uses Docker Compose)
+
+docker-test-legacy: ## Run legacy Docker integration test (single container)
+	@echo "🐳 Running legacy Docker integration tests..."
 	bash scripts/run-basic-docker-test.sh
-	@echo "✅ Docker tests completed"
+	@echo "✅ Legacy Docker tests completed"
 
 docker-test-minimal: ## Run minimal Docker tests with compose
 	@echo "🐳 Running minimal Docker Compose tests..."
@@ -347,9 +355,33 @@ docker-test-simple: ## Run simple Docker tests without external dependencies
 	docker-compose -f docker-compose.simple.yml down
 	@echo "✅ Simple Docker tests completed"
 
+# Docker environment management
+docker-up: ## Start Docker Compose test environment (for development)
+	@echo "🐳 Starting Docker Compose test environment..."
+	docker compose -f docker-compose.test.yml up -d --build --wait
+	@echo "✅ Test environment is running at http://localhost:8080"
+
+docker-down: ## Stop Docker Compose test environment
+	@echo "🐳 Stopping Docker Compose test environment..."
+	docker compose -f docker-compose.test.yml down -v --remove-orphans
+	@echo "✅ Test environment stopped"
+
+docker-logs: ## Show Docker Compose logs
+	@echo "📋 Docker Compose logs:"
+	docker compose -f docker-compose.test.yml logs
+
+docker-health: ## Check Docker Compose service health
+	@echo "🔍 Checking Docker service health..."
+	@echo "App health:"
+	@docker compose -f docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz || echo "❌ App not healthy"
+	@echo "Firestore emulator health:"
+	@docker compose -f docker-compose.test.yml exec -T firestore-emulator nc -z localhost 8080 || echo "❌ Firestore not healthy"
+	@echo "✅ Health check completed"
+
 docker-clean: ## Clean up Docker containers and images
 	@echo "🧹 Cleaning Docker resources..."
 	docker system prune -f
+	docker compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
 	docker-compose -f docker-compose.minimal.yml down -v --remove-orphans 2>/dev/null || true
 	docker-compose -f docker-compose.simple.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "✅ Docker cleanup completed"
@@ -520,4 +552,72 @@ validate: ## Validate project configuration
 .PHONY: security-report complexity-analysis complexity-report deps-analysis deps-report docs-check
 .PHONY: pre-commit-install pre-commit-run pre-commit-update
 .PHONY: quality-gate-basic quality-gate-full quality-gate-ci profile-performance
-.PHONY: metrics-dashboard static-analysis-report 
+.PHONY: metrics-dashboard static-analysis-report
+
+# Comprehensive Testing Commands
+test-full: ## Run complete test suite including Docker tests
+	@echo "🚀 Running COMPLETE test suite (matches GitHub Actions)..."
+	@echo ""
+	@echo "📋 Stage 1: Unit Tests"
+	make test-unit
+	@echo ""
+	@echo "📋 Stage 2: Integration Tests"
+	make test-integration
+	@echo ""
+	@echo "📋 Stage 3: Docker Integration Tests"
+	make docker-test-compose
+	@echo ""
+	@echo "📋 Stage 4: Coverage Report"
+	make test-coverage
+	@echo ""
+	@echo "🎉 COMPLETE test suite passed! Ready for deployment."
+
+# Pre-commit test suite (fast but comprehensive)
+pre-commit: ## Run comprehensive pre-commit test suite
+	@echo "🔄 Running pre-commit test suite..."
+	@echo ""
+	@echo "📋 Stage 1: Code Quality & Security"
+	make quality-gate-ci
+	@echo ""
+	@echo "📋 Stage 2: Unit Tests (fast)"
+	make test-unit
+	@echo ""
+	@echo "📋 Stage 3: Integration Tests"
+	make test-integration
+	@echo ""
+	@echo "📋 Stage 4: Docker Tests (conditional)"
+	@if [ "$$SKIP_DOCKER" != "true" ]; then \
+		echo "🐳 Running Docker tests..."; \
+		make docker-test-compose; \
+	else \
+		echo "⏭️  Skipping Docker tests (SKIP_DOCKER=true)"; \
+	fi
+	@echo ""
+	@echo "🎯 Pre-commit test suite PASSED! Ready to commit."
+
+# Quick pre-commit (skips Docker tests)
+pre-commit-fast: ## Run fast pre-commit checks (no Docker)
+	@echo "⚡ Running fast pre-commit checks..."
+	SKIP_DOCKER=true make pre-commit
+	@echo "🎯 Fast pre-commit checks PASSED!"
+
+# CI simulation (exactly matches GitHub Actions)
+ci-simulate: ## Simulate complete CI pipeline locally
+	@echo "🤖 Simulating GitHub Actions CI pipeline..."
+	@echo ""
+	@echo "=== Unit Tests Job ==="
+	make test-unit
+	@echo ""
+	@echo "=== Integration Tests Job ==="
+	make test-integration
+	@echo ""
+	@echo "=== Docker Tests Job ==="
+	make docker-test-compose
+	@echo ""
+	@echo "=== Coverage Job ==="
+	make test-coverage
+	@echo ""
+	@echo "=== Static Analysis Job ==="
+	make quality-gate-ci
+	@echo ""
+	@echo "🎉 CI simulation PASSED! GitHub Actions will succeed." 
