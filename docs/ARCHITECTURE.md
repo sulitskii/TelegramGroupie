@@ -491,9 +491,9 @@ ERROR HANDLING
 
 ---
 
-This comprehensive architecture documentation provides a detailed view of the system design, covering all major components, data flows, security considerations, and deployment strategies. The diagrams use ASCII art for universal compatibility and easy maintenance in version control. 
+This comprehensive architecture documentation provides a detailed view of the system design, covering all major components, data flows, security considerations, and deployment strategies. The diagrams use ASCII art for universal compatibility and easy maintenance in version control.
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            TELEGRAMGROUPIE                                  │
 │                      Smart Group Management Platform                        │
-└─────────────────────────────────────────────────────────────────────────────┘ 
+└─────────────────────────────────────────────────────────────────────────────┘

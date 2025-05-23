@@ -291,4 +291,4 @@ profile.svg
 .scannerwork/
 
 # Pre-commit
-.pre-commit-config.yaml.backup 
+.pre-commit-config.yaml.backup

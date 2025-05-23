@@ -49,4 +49,4 @@ services:
 
 networks:
   test-network:
-    driver: bridge 
+    driver: bridge

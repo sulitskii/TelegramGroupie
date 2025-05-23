@@ -76,4 +76,4 @@ SERVICE_URL=$(gcloud run services describe telegramgroupie --platform managed --
 
 echo "🌐 Your service is available at: ${SERVICE_URL}"
 echo "📝 Don't forget to set up your webhook with:"
-echo "curl -X POST \"https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook\" -d \"url=${SERVICE_URL}/webhook/YOUR_WEBHOOK_SECRET\"" 
+echo "curl -X POST \"https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook\" -d \"url=${SERVICE_URL}/webhook/YOUR_WEBHOOK_SECRET\""

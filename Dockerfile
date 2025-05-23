@@ -18,13 +18,15 @@ COPY main.py encryption.py mock_firestore.py mock_encryption.py ./
 # Set environment variables
 ENV PORT=8080
 ENV PYTHONPATH=/app
+ENV WORKERS=4
+ENV TIMEOUT=120
 
 # Expose port
 EXPOSE 8080
 
 # Add health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-# Run the application
-CMD ["python", "main.py"] 
+# Run the application with Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "main:app"]
