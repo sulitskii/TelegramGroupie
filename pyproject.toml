@@ -254,13 +254,30 @@ minversion = "6.0"
 addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
 markers = [
-    "slow: marks tests as slow",
-    "integration: marks tests as integration tests",
-    "docker: marks tests as docker tests",
-    "requires_auth: marks tests that require authentication",
-    "unit: marks tests as unit tests",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "unit: marks tests as unit tests (fast, isolated)",
+    "integration: marks tests as integration tests (with mocks)",
+    "docker: marks tests as docker-based integration tests (requires Docker)",
+    "requires_auth: marks tests that require real authentication",
+    "network: marks tests that require network access",
+    "e2e: marks tests as end-to-end tests (full system)",
 ]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-asyncio_mode = "auto" 
+asyncio_mode = "auto"
+
+# Test discovery and organization
+norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv"]
+testpaths = ["tests"]
+
+# Coverage integration
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+]
+
+# Timeout for tests (30 seconds default)
+timeout = 30
+timeout_method = "thread" 

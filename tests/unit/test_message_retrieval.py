@@ -1,3 +1,10 @@
+"""
+Unit Tests for Message Retrieval API
+
+Tests the message retrieval endpoints and functionality using mocks for
+database and encryption services to ensure fast, isolated testing.
+"""
+
 import sys
 from datetime import datetime
 from unittest.mock import Mock, patch
@@ -16,6 +23,9 @@ with (
     mock_firestore.return_value = Mock()
     mock_kms.return_value = Mock()
     from main import app
+
+# Mark all tests in this file as unit tests
+pytestmark = pytest.mark.unit
 
 
 @pytest.fixture

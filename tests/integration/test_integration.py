@@ -3,7 +3,7 @@ Integration Tests for TelegramGroupie
 
 This module contains comprehensive integration tests for the TelegramGroupie
 application using mock services for fast, reliable testing without external
-dependencies.
+dependencies. Tests complete workflows from API endpoints to data storage.
 """
 
 import os
@@ -27,6 +27,9 @@ with (
     mock_firestore.return_value = Mock()
     mock_kms.return_value = Mock()
     from main import app
+
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
 
 
 class IntegrationTestServer:
