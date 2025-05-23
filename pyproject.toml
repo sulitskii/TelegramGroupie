@@ -266,6 +266,7 @@ markers = [
     "requires_auth: marks tests that require real authentication",
     "network: marks tests that require network access",
     "e2e: marks tests as end-to-end tests (full system)",
+    "performance: marks tests as performance tests",
 ]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
