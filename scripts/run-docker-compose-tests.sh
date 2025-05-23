@@ -69,26 +69,26 @@ mkdir -p test-results
 # Run tests using the test runner service
 if docker compose -f docker-compose.test.yml run --rm test-runner; then
     echo -e "${GREEN}✅ Docker tests completed successfully!${NC}"
-    
+
     # Copy test results
     docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ 2>/dev/null || true
-    
+
     # Show results summary
     if [ -f test-results/docker-tests.xml ]; then
         echo -e "${GREEN}📊 Test results saved to test-results/${NC}"
         ls -la test-results/
     fi
-    
+
     echo -e "${GREEN}🎉 All Docker integration tests passed!${NC}"
 else
     echo -e "${RED}❌ Docker tests failed${NC}"
-    
+
     # Show logs for debugging
     echo -e "${YELLOW}🔍 Application logs:${NC}"
     docker compose -f docker-compose.test.yml logs app
-    
+
     echo -e "${YELLOW}🔍 Test runner logs:${NC}"
     docker compose -f docker-compose.test.yml logs test-runner
-    
+
     exit 1
-fi 
+fi

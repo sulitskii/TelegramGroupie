@@ -75,7 +75,7 @@ complexity-analysis: ## Analyze code complexity
 complexity-report: ## Generate detailed complexity reports
 	@echo "📈 Generating complexity reports..."
 	radon cc . --json > complexity-cyclomatic.json
-	radon mi . --json > complexity-maintainability.json  
+	radon mi . --json > complexity-maintainability.json
 	radon raw . --json > complexity-raw.json
 	vulture . --json > complexity-deadcode.json || true
 	@echo "📋 Complexity reports generated"
@@ -545,7 +545,7 @@ validate: ## Validate project configuration
 .DEFAULT_GOAL := help
 
 # Ensure commands fail fast
-.SHELLFLAGS := -eu -o pipefail -c 
+.SHELLFLAGS := -eu -o pipefail -c
 
 # Add to help display
 .PHONY: ruff-check ruff-format ruff-fix format-legacy lint-comprehensive
@@ -620,4 +620,4 @@ ci-simulate: ## Simulate complete CI pipeline locally
 	@echo "=== Static Analysis Job ==="
 	make quality-gate-ci
 	@echo ""
-	@echo "🎉 CI simulation PASSED! GitHub Actions will succeed." 
+	@echo "🎉 CI simulation PASSED! GitHub Actions will succeed."

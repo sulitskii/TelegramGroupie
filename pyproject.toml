@@ -139,7 +139,6 @@ ignore = [
     "EXE001", # Shebang present but file not executable
     "RUF005", # Consider iterable unpacking instead of concatenation
     "RET504", # Unnecessary assignment before return
-    "LOG015", # Call on root logger (OK for simple scripts)
     "G004",   # Logging statement uses f-string (OK for readability)
     "COM812", # Trailing comma missing (conflicts with formatter)
 ]
@@ -253,7 +252,7 @@ directory = "htmlcov"
 minversion = "6.0"
 addopts = [
     "-ra",
-    "-q", 
+    "-q",
     "--strict-markers",
     "--strict-config",
     "--disable-warnings",
@@ -272,4 +271,4 @@ python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv"] 
+norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv"]
