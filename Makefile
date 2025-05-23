@@ -1,4 +1,4 @@
-# Telegram to WhatsApp Bridge - Makefile
+# TelegramGroupie - Makefile
 # ==============================================
 # Development, Testing, and Deployment Commands
 # ==============================================
@@ -222,7 +222,7 @@ quality: quality-gate-full test ## Run full quality assurance with enhanced anal
 # ==============================================
 
 help: ## Show this help message
-	@echo "🚀 Telegram2WhatsApp Bridge - Available Commands"
+	@echo "🚀 TelegramGroupie - Available Commands"
 	@echo "=================================================="
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -297,7 +297,7 @@ type-check: ## Run type checking with mypy
 
 docker-build: ## Build Docker image
 	@echo "🏗️ Building Docker image..."
-	docker build -t telegram2whatsapp:latest .
+	docker build -t telegramgroupie:latest .
 	@echo "✅ Docker image built"
 
 docker-test: ## Run quick Docker integration test
@@ -416,7 +416,7 @@ release-check: ## Check if ready for release
 info: ## Show project information
 	@echo "📋 Project Information"
 	@echo "======================"
-	@echo "Project: Telegram to WhatsApp Bridge"
+	@echo "Project: TelegramGroupie"
 	@echo "Python: $(shell python --version)"
 	@echo "Docker: $(shell docker --version 2>/dev/null || echo 'Not installed')"
 	@echo "Git: $(shell git --version 2>/dev/null || echo 'Not installed')"

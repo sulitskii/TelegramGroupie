@@ -157,7 +157,7 @@ jobs:
 │ │ 1. ✅ Checkout code                                                     │ │
 │ │ 2. 🐳 Setup Docker Buildx                                               │ │
 │ │ 3. 🏗️ Build Docker image                                                │ │
-│ │    └─ docker build -t telegram2whatsapp:test .                        │ │
+│ │    └─ docker build -t telegramgroupie:test .                        │ │
 │ │ 4. 🧪 Run Docker integration tests                                      │ │
 │ │    └─ bash scripts/run-basic-docker-test.sh                           │ │
 │ │ 5. 🔍 Run container security scan                                       │ │
@@ -178,7 +178,7 @@ jobs:
 │ │ 2. 🔑 Authenticate to Google Cloud                                      │ │
 │ │ 3. 🐳 Configure Docker for GCR                                          │ │
 │ │ 4. 🏗️ Build production image                                            │ │
-│ │    └─ docker build -t gcr.io/$PROJECT/telegram2whatsapp:$SHA .        │ │
+│ │    └─ docker build -t gcr.io/$PROJECT/telegramgroupie:$SHA .        │ │
 │ │ 5. 🚀 Push to Container Registry                                        │ │
 │ │ 6. 🔖 Tag with version                                                  │ │
 │ └─────────────────────────────────────────────────────────────────────────┘ │
@@ -196,7 +196,7 @@ jobs:
 │ │ 1. ✅ Checkout code                                                     │ │
 │ │ 2. 🔑 Authenticate to Google Cloud                                      │ │
 │ │ 3. 🚀 Deploy to Cloud Run (staging)                                     │ │
-│ │    └─ gcloud run deploy telegram2whatsapp-staging                     │ │
+│ │    └─ gcloud run deploy telegramgroupie-staging                     │ │
 │ │ 4. 🔍 Run smoke tests                                                   │ │
 │ │ 5. 📋 Update deployment status                                          │ │
 │ └─────────────────────────────────────────────────────────────────────────┘ │
@@ -215,7 +215,7 @@ jobs:
 │ │ 1. ✅ Checkout code                                                     │ │
 │ │ 2. 🔑 Authenticate to Google Cloud                                      │ │
 │ │ 3. 🚀 Deploy to Cloud Run (production)                                  │ │
-│ │    └─ gcloud run deploy telegram2whatsapp                             │ │
+│ │    └─ gcloud run deploy telegramgroupie                             │ │
 │ │ 4. 🔍 Run health checks                                                 │ │
 │ │ 5. 📊 Monitor deployment metrics                                        │ │
 │ │ 6. 🎉 Send success notification                                         │ │
@@ -339,7 +339,7 @@ DEPLOYMENT TARGETS
 │ STAGING ENVIRONMENT                    │ PRODUCTION ENVIRONMENT              │
 │ ┌─────────────────────────────────┐    │ ┌─────────────────────────────────┐ │
 │ │ Google Cloud Run                │    │ │ Google Cloud Run                │ │
-│ │ ├─ Service: telegram2whatsapp-  │    │ │ ├─ Service: telegram2whatsapp   │ │
+│ │ ├─ Service: telegramgroupie-  │    │ │ ├─ Service: telegramgroupie   │ │
 │ │ │   staging                     │    │ │ │                               │ │
 │ │ ├─ Region: us-central1          │    │ │ ├─ Region: us-central1          │ │
 │ │ ├─ Memory: 512Mi                │    │ │ ├─ Memory: 1Gi                  │ │
@@ -347,7 +347,7 @@ DEPLOYMENT TARGETS
 │ │ ├─ Concurrency: 10              │    │ │ ├─ Concurrency: 100             │ │
 │ │ ├─ Min instances: 0             │    │ │ ├─ Min instances: 1              │ │
 │ │ ├─ Max instances: 10            │    │ │ ├─ Max instances: 100            │ │
-│ │ └─ Allow unauthenticated: true  │    │ │ └─ Allow unauthenticated: true  │ │
+│ │ └─ Allow unauthenticated: true  │    │ │ ├─ Allow unauthenticated: true  │ │
 │ └─────────────────────────────────┘    │ └─────────────────────────────────┘ │
 │                                        │                                     │
 │ ENVIRONMENT VARIABLES:                 │ ENVIRONMENT VARIABLES:              │
@@ -386,7 +386,7 @@ LOGGING STRATEGY
 │ │ {                                                                       │ │
 │ │   "timestamp": "2024-01-01T12:00:00Z",                                 │ │
 │ │   "level": "INFO",                                                      │ │
-│ │   "logger": "telegram2whatsapp",                                        │ │
+│ │   "logger": "telegramgroupie",                                        │ │
 │ │   "message": "Message processed successfully",                          │ │
 │ │   "context": {                                                          │ │
 │ │     "message_id": 12345,                                                │ │

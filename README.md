@@ -1,18 +1,18 @@
-# Telegram to WhatsApp Bridge
+# TelegramGroupie
 
-A secure, cloud-native Flask application that captures Telegram group messages and bridges them to WhatsApp, with end-to-end encryption and cloud storage.
+A smart, cloud-native Flask application for Telegram group management and message bridging, with end-to-end encryption and cloud storage.
 
-## 🏗️ **Architecture Overview**
+## 🔥 **Architecture Overview**
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          TELEGRAM TO WHATSAPP BRIDGE                │
-└─────────────────────────────────────────────────────────────────────┘
-
+┌────────────────────────────────────────────────────────────────────────────┐
+│                              TELEGRAMGROUPIE                               │
+│                      Smart Telegram Group Management                       │
+└────────────────────────────────────────────────────────────────────────────┘
 ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐    ┌─────────────┐
-│  Telegram   │───▶│    Flask    │───▶│   Google Cloud  │───▶│  WhatsApp   │
-│   Groups    │    │     App     │    │   Firestore +   │    │  Business   │
-│             │    │             │    │      KMS        │    │     API     │
+│  Telegram   │───▶│    Flask    │───▶│   Google Cloud  │───▶│ Destinations│
+│   Groups    │    │ Application │    │   Infrastructure│    │   & Bridges │
+│  Messages   │    │  (Python)   │    │  (Firestore+KMS)│    │   (Custom)  │
 └─────────────┘    └─────────────┘    └─────────────────┘    └─────────────┘
                           │                      │
                           ▼                      ▼
@@ -54,7 +54,7 @@ A secure, cloud-native Flask application that captures Telegram group messages a
 ```bash
 # Clone repository
 git clone <repository-url>
-cd telegram2whatsapp
+cd TelegramGroupie
 
 # Create virtual environment
 python -m venv venv
@@ -91,8 +91,8 @@ bash scripts/run-basic-docker-test.sh
 make docker-test-minimal
 
 # Build and test individually  
-docker build -t telegram2whatsapp:test .
-docker run -d -p 8081:8080 -e TESTING=true telegram2whatsapp:test
+docker build -t telegramgroupie:test .
+docker run -d -p 8081:8080 -e TESTING=true telegramgroupie:test
 curl http://localhost:8081/healthz
 ```
 
@@ -209,7 +209,7 @@ Content-Type: application/json
 ## 📁 **Project Structure**
 
 ```
-telegram2whatsapp/
+TelegramGroupie/
 ├── 📄 main.py                     # Main Flask application
 ├── 🔐 encryption.py               # Google Cloud KMS encryption
 ├── 🧪 mock_firestore.py           # Mock Firestore for testing

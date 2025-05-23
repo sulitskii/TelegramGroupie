@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Local Development Runner for telegram2whatsapp
+"""Local Development Runner for TelegramGroupie
 
-This script sets up the local development environment with proper configuration
-for integration testing and local development.
+This script provides a local development environment for the TelegramGroupie
+application with hot-reload capabilities and integrated testing support.
 """
 
 import os
@@ -142,7 +142,7 @@ def start_local_server():
 
 def main():
     """Main function."""
-    print("🏗️  telegram2whatsapp Local Development Setup")
+    print("🚀 TelegramGroupie Local Development Setup")
     print("=" * 50)
 
     # Parse command line arguments
