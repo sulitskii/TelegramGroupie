@@ -4,6 +4,7 @@ set -e
 
 # Default behavior
 DOCKER_TESTS=false
+DOCKER_FAST_TESTS=false
 INTERACTIVE=false
 NO_CLEANUP=false
 
@@ -15,6 +16,10 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --docker)
       DOCKER_TESTS=true
+      shift
+      ;;
+    --docker-fast)
+      DOCKER_FAST_TESTS=true
       shift
       ;;
     --interactive)
@@ -29,14 +34,16 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --docker       Run Docker integration tests"
+      echo "  --docker       Run full Docker integration tests (~15s)"
+      echo "  --docker-fast  Run ultra-fast Docker tests (~8s)"
       echo "  --interactive  Ask before running Docker tests"
       echo "  --no-cleanup   Skip Docker cleanup (useful for debugging)"
       echo "  --help, -h     Show this help message"
       echo ""
       echo "Examples:"
-      echo "  $0                    # Run unit tests only"
-      echo "  $0 --docker           # Run unit + Docker tests with cleanup"
+      echo "  $0                     # Run unit tests only (~2s)"
+      echo "  $0 --docker-fast       # Run unit + fast Docker tests (~10s)"
+      echo "  $0 --docker            # Run unit + full Docker tests (~17s)"
       echo "  $0 --docker --no-cleanup  # Run tests, keep containers for debugging"
       exit 0
       ;;
@@ -106,6 +113,80 @@ cleanup_docker() {
     fi
 }
 
+# Run ultra-fast Docker tests (single container)
+run_docker_fast_tests() {
+    print_status "Running ultra-fast Docker tests..."
+    
+    # Build test image
+    print_status "Building optimized test image..."
+    if ! docker build -t telegramgroupie:fast-test . >/dev/null 2>&1; then
+        print_error "Failed to build Docker image"
+        return 1
+    fi
+    
+    # Start container
+    print_status "Starting test container..."
+    local container_id
+    container_id=$(docker run -d \
+        -p 8082:8080 \
+        -e TESTING=true \
+        -e GCP_PROJECT_ID=test-project \
+        -e WEBHOOK_SECRET=test_webhook_secret_123 \
+        --name telegramgroupie-fast-test \
+        telegramgroupie:fast-test)
+    
+    if [[ -z "$container_id" ]]; then
+        print_error "Failed to start container"
+        return 1
+    fi
+    
+    # Wait for container to be ready
+    print_status "Waiting for application to start..."
+    local ready=false
+    for i in {1..20}; do
+        if curl -s http://localhost:8082/healthz >/dev/null 2>&1; then
+            ready=true
+            break
+        fi
+        sleep 0.5
+    done
+    
+    if [[ "$ready" != "true" ]]; then
+        print_error "Container failed to start properly"
+        if [[ "$NO_CLEANUP" != "true" ]]; then
+            docker stop $container_id >/dev/null 2>&1 || true
+            docker rm $container_id >/dev/null 2>&1 || true
+        fi
+        return 1
+    fi
+    
+    # Run tests against the container
+    print_status "Running integration tests..."
+    local test_result=0
+    APP_URL=http://localhost:8082 python -m pytest tests/docker/ -q --tb=line || test_result=$?
+    
+    # Cleanup fast tests
+    if [[ "$NO_CLEANUP" != "true" ]]; then
+        print_status "Cleaning up fast test containers..."
+        docker stop $container_id >/dev/null 2>&1 || true
+        docker rm $container_id >/dev/null 2>&1 || true
+        docker rmi telegramgroupie:fast-test >/dev/null 2>&1 || true
+        echo "🧹 Fast test cleanup completed"
+    else
+        print_warning "Fast test container left running for debugging"
+        echo "💡 Container: telegramgroupie-fast-test (http://localhost:8082)"
+        echo "   To cleanup: docker stop telegramgroupie-fast-test && docker rm telegramgroupie-fast-test"
+    fi
+    
+    if [[ $test_result -eq 0 ]]; then
+        print_success "Fast Docker tests passed"
+        return 0
+    else
+        print_error "Fast Docker tests failed"
+        return 1
+    fi
+}
+
 # Run Docker tests function
 run_docker_tests() {
     if [[ "$NO_CLEANUP" == "true" ]]; then
@@ -162,15 +243,34 @@ else
 fi
 
 # Docker Tests
-if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; then
+if command -v docker &> /dev/null; then
+    # Handle interactive mode
     if [[ "$INTERACTIVE" == "true" ]]; then
         echo
-        read -p "🐳 Run Docker integration tests? (y/N): " run_docker
-        if [[ $run_docker =~ ^[Yy]$ ]]; then
-            DOCKER_TESTS=true
+        read -p "🐳 Run Docker integration tests? [f]ast/[F]ull/[n]o (f/F/n): " run_docker
+        case $run_docker in
+            [Ff])
+                if [[ "$run_docker" == "f" ]]; then
+                    DOCKER_FAST_TESTS=true
+                else
+                    DOCKER_TESTS=true
+                fi
+                ;;
+            *)
+                echo "ℹ️  Docker tests skipped"
+                ;;
+        esac
+    fi
+
+    # Run fast Docker tests
+    if [[ "$DOCKER_FAST_TESTS" == "true" ]]; then
+        echo
+        if ! run_docker_fast_tests; then
+            exit 1
         fi
     fi
 
+    # Run full Docker tests
     if [[ "$DOCKER_TESTS" == "true" ]]; then
         echo
         
@@ -184,14 +284,14 @@ if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; the
         fi
         
         # Run Docker tests
-        print_status "Running Docker integration tests..."
+        print_status "Running full Docker integration tests..."
         DOCKER_TEST_SUCCESS=false
         
         if run_docker_tests; then
-            print_success "Docker tests passed"
+            print_success "Full Docker tests passed"
             DOCKER_TEST_SUCCESS=true
         else
-            print_error "Docker tests failed"
+            print_error "Full Docker tests failed"
         fi
         
         # Post-test cleanup (conditional)
@@ -201,9 +301,15 @@ if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; the
             cleanup_docker "failed"
             exit 1
         fi
-    else
+    fi
+    
+    # Show Docker options if none selected
+    if [[ "$DOCKER_TESTS" == "false" && "$DOCKER_FAST_TESTS" == "false" && "$INTERACTIVE" == "false" ]]; then
         echo
-        echo "ℹ️  Docker tests skipped. Use --docker to run them or --interactive to be prompted."
+        echo "ℹ️  Docker tests skipped. Options:"
+        echo "   --docker-fast  Ultra-fast Docker tests (~8s)"
+        echo "   --docker       Full Docker tests (~15s)"
+        echo "   --interactive  Choose interactively"
     fi
 else
     print_warning "Docker not available, skipping Docker tests"
