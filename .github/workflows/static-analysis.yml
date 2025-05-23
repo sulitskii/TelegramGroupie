@@ -299,7 +299,7 @@ jobs:
         echo "Ruff Analysis: ${{ needs.ruff-analysis.result }}"
         echo "Security Analysis: ${{ needs.security-analysis.result }}"
         echo "Complexity Analysis: ${{ needs.complexity-analysis.result }}"
-        
+
         # More lenient quality gate - allow some non-critical failures
         if [[ "${{ needs.ruff-analysis.result }}" == "failure" ]]; then
           echo "❌ Critical: Ruff analysis failed!"
@@ -327,35 +327,35 @@ jobs:
       run: |
         cat > quality-report.md << 'EOF'
         # 📊 Code Quality Report
-        
-        **Repository:** ${{ github.repository }}  
-        **Branch:** ${{ github.ref_name }}  
-        **Commit:** ${{ github.sha }}  
+
+        **Repository:** ${{ github.repository }}
+        **Branch:** ${{ github.ref_name }}
+        **Commit:** ${{ github.sha }}
         **Date:** $(date)
-        
+
         ## 🔍 Analysis Results
-        
+
         | Tool | Status | Report |
         |------|--------|---------|
         | Ruff | ${{ needs.ruff-analysis.result }} | Available |
         | Security Scan | ${{ needs.security-analysis.result }} | Available |
         | Complexity | ${{ needs.complexity-analysis.result }} | Available |
         | Dependencies | ${{ needs.dependency-analysis.result }} | Available |
-        
+
         ## 📈 Metrics Summary
-        
+
         - **Files Analyzed:** $(find . -name "*.py" -not -path "./venv/*" | wc -l)
         - **Lines of Code:** $(find . -name "*.py" -not -path "./venv/*" -exec wc -l {} + | tail -1 | awk '{print $1}')
         - **Test Coverage:** Check coverage report
-        
+
         ## 🎯 Quality Gate
-        
+
         Overall Status: **${{ needs.ruff-analysis.result == 'success' && 'PASSED' || 'FAILED' }}**
-        
+
         EOF
 
     - name: Upload quality report
       uses: actions/upload-artifact@v3
       with:
         name: quality-report
-        path: quality-report.md 
+        path: quality-report.md
