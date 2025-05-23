@@ -1,4 +1,6 @@
-# TelegramGroupie
+# TelegramGroupie 🚀
+
+<!-- Workflow updated: CodeQL removed for streamlined CI/CD -->
 
 A smart, cloud-native Flask application for Telegram group management and message bridging, with end-to-end encryption and cloud storage.
 
