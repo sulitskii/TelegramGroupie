@@ -147,4 +147,148 @@ poetry.lock
 
 # Allow CI/CD config
 !.github/
-!.github/workflows/ 
+!.github/workflows/
+
+# Dependency directories
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+.coverage
+.nyc_output
+
+# Docs
+docs/_build/
+docs/.doctrees/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Security
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+.tmp/
+.sass-cache/
+
+# Flask instance folder
+instance/
+
+# Flask tests
+tests/test_results/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Large files that should not be committed
+get-pip.py
+
+# pytest cache
+.pytest_cache/
+
+# coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# ruff cache
+.ruff_cache/
+
+# Reports directory and files
+reports/
+test-results/
+*-report.json
+*-report.txt
+*-report.html
+*-report.xml
+
+# Static analysis reports
+ruff-report.json
+bandit-report.json
+safety-report.json
+semgrep-report.json
+radon-complexity.json
+radon-maintainability.json
+radon-raw.json
+vulture-report.json
+pip-audit.json
+licenses.json
+dependency-tree.json
+complexity-*.json
+deps-*.json
+security-*.json
+quality-report.md
+
+# Performance profiling
+profile.svg
+*.prof
+
+# SonarQube
+.sonar/
+.scannerwork/
+
+# Pre-commit
+.pre-commit-config.yaml.backup 
