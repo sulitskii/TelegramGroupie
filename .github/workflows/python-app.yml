@@ -35,6 +35,12 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         
+    - name: Debug CI environment
+      env:
+        TESTING: true
+      run: |
+        python debug_ci.py
+        
     - name: Run unit tests
       env:
         TESTING: true
