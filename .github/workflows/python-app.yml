@@ -41,7 +41,7 @@ jobs:
         python -m pytest tests/unit/ -v --tb=short
 
   # ==============================================
-  # Docker Integration Tests
+  # Docker Integration Tests - Optimized
   # ==============================================
   docker-tests:
     name: 🐳 Docker Tests
@@ -56,14 +56,14 @@ jobs:
 
     - name: Build and start test environment
       run: |
-        echo "🐳 Starting Docker Compose test environment..."
+        echo "🐳 Starting optimized Docker test environment..."
         docker compose -f docker-compose.test.yml up -d --build --wait
 
     - name: Verify services health
       run: |
         echo "🔍 Verifying service health..."
-        # Wait a bit more for services to be fully ready
-        sleep 10
+        # Wait for application to be fully ready
+        sleep 5
         docker compose -f docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz
         echo "✅ Services are healthy!"
 
@@ -75,7 +75,9 @@ jobs:
     - name: Collect test results
       if: always()
       run: |
-        docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ || true
+        # Copy test results if they exist
+        mkdir -p test-results
+        docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ || echo "No test results to copy"
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -87,9 +89,8 @@ jobs:
     - name: Show logs on failure
       if: failure()
       run: |
-        echo "🔍 Showing logs for debugging..."
+        echo "🔍 Showing application logs for debugging..."
         docker compose -f docker-compose.test.yml logs app
-        docker compose -f docker-compose.test.yml logs firestore-emulator
 
     - name: Cleanup
       if: always()

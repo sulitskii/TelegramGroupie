@@ -1,3 +1,6 @@
+# ⚡ Fast Docker Test Configuration for TelegramGroupie
+# Optimized for speed: No Firestore emulator needed in TESTING=true mode
+
 services:
   # Main application service
   app:
@@ -8,38 +11,14 @@ services:
       - TESTING=true
       - GCP_PROJECT_ID=test-project
       - WEBHOOK_SECRET=test_webhook_secret_123
-      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8080
     networks:
       - test-network
-    depends_on:
-      firestore-emulator:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
-  # Firestore emulator for database testing
-  firestore-emulator:
-    image: gcr.io/google.com/cloudsdktool/cloud-sdk:alpine
-    command: >
-      sh -c "apk add --no-cache openjdk11-jre && 
-             gcloud components install beta cloud-firestore-emulator --quiet &&
-             gcloud beta emulators firestore start --host-port=0.0.0.0:8080"
-    ports:
-      - "8081:8080"
-    environment:
-      - CLOUDSDK_CORE_PROJECT=test-project
-    networks:
-      - test-network
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "8080"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 45s
+      interval: 3s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
 
   # Test runner service
   test-runner:
@@ -51,13 +30,10 @@ services:
       - ./test-results:/app/test-results
     environment:
       - APP_URL=http://app:8080
-      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8080
     networks:
       - test-network
     depends_on:
       app:
-        condition: service_healthy
-      firestore-emulator:
         condition: service_healthy
 
 networks:
