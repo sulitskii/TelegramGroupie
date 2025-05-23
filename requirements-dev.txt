@@ -1,0 +1,61 @@
+# Development and Integration Testing Dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Include base requirements
+-r requirements.txt
+
+# Testing dependencies
+requests==2.32.3  # For integration testing HTTP requests
+python-dotenv==1.0.1  # For loading .env files
+pytest-xdist==3.6.1  # For parallel test execution
+pytest-cov==6.0.0  # For test coverage reports
+pytest-html==4.1.1  # For HTML test reports
+pytest-mock==3.14.0  # Enhanced mocking capabilities
+pytest-timeout==2.4.0  # For test timeouts
+pytest-asyncio==0.25.0  # For async test support
+
+# Code Quality & Linting (Enhanced Stack)
+ruff==0.1.6  # Ultra-fast Python linter and formatter (replaces black, isort, flake8)
+mypy==1.13.0  # Static type checking
+pylint==3.0.3  # Comprehensive Python linter
+
+# Security Analysis
+bandit[toml]==1.7.5  # Security vulnerability scanner
+safety==2.3.5  # Dependency vulnerability checker
+semgrep==1.45.0  # Static analysis for security patterns
+pip-audit==2.6.1  # Python package vulnerability scanner
+
+# Code Complexity & Quality Analysis  
+radon==6.0.1  # Code complexity metrics
+vulture==2.10  # Dead code detection
+xenon==0.9.1  # Code complexity monitoring
+cohesion==1.0.0  # Class cohesion metrics
+
+# Dependency Analysis
+pip-licenses==4.3.2  # License compliance checking
+pipdeptree==2.13.1  # Dependency tree visualization
+
+# Pre-commit hooks
+pre-commit==3.6.0  # Git hooks for code quality
+
+# Documentation tools
+sphinx==8.1.3  # Documentation generation
+sphinx-rtd-theme==3.0.2  # Read the Docs theme
+pydocstyle==6.3.0  # Docstring style checking
+interrogate==1.5.0  # Docstring coverage
+
+# Development utilities
+ipython==8.18.1  # Enhanced Python shell
+ipdb==0.13.13  # Enhanced debugger
+rich==13.7.0  # Rich text and beautiful formatting
+
+# Performance profiling
+py-spy==0.3.14  # Sampling profiler
+memory-profiler==0.61.0  # Memory usage profiler
+
+# Additional formatters (if not using Ruff for everything)
+autopep8==2.0.4  # PEP 8 auto-formatter (backup)
+docformatter==1.7.5  # Docstring formatter
+
+# License compatibility checking
+licensecheck==2023.3.1  # License compatibility verification 

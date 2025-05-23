@@ -1,0 +1,266 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telegram2whatsapp"
+version = "1.0.0"
+description = "Secure Telegram to WhatsApp bridge with end-to-end encryption"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Communications :: Chat",
+    "Topic :: Security :: Cryptography",
+]
+
+[tool.ruff]
+# Ruff configuration - ultra-fast Python linter
+target-version = "py311"
+line-length = 88
+indent-width = 4
+
+# Exclude directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "migrations",
+    "get-pip.py",  # Exclude the large pip file
+]
+
+[tool.ruff.lint]
+# Enable additional rule sets
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",    # isort
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "S",    # flake8-bandit (security)
+    "C90",  # mccabe complexity
+    "RUF",  # Ruff-specific rules
+    "ASYNC", # flake8-async
+    "A",    # flake8-builtins
+    "COM",  # flake8-commas
+    "C4",   # flake8-comprehensions
+    "DTZ",  # flake8-datetimez
+    "EM",   # flake8-errmsg
+    "EXE",  # flake8-executable
+    "ISC",  # flake8-implicit-str-concat
+    "LOG",  # flake8-logging
+    "G",    # flake8-logging-format
+    "PIE",  # flake8-pie
+    "PT",   # flake8-pytest-style
+    "Q",    # flake8-quotes
+    "RSE",  # flake8-raise
+    "RET",  # flake8-return
+    "SLF",  # flake8-self
+    "SLOT", # flake8-slots
+    "TID",  # flake8-tidy-imports
+    "TCH",  # flake8-type-checking
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # eradicate (commented code)
+    "PL",   # Pylint
+    "TRY",  # tryceratops
+    "FLY",  # flynt
+    "PERF", # Perflint
+    "FURB", # refurb
+]
+
+# Ignore specific rules
+ignore = [
+    "D100",   # Missing docstring in public module
+    "D101",   # Missing docstring in public class
+    "D103",   # Missing docstring in public function
+    "D104",   # Missing docstring in public package
+    "D107",   # Missing docstring in __init__
+    "D102",   # Missing docstring in public method
+    "D415",   # First line should end with period (too strict)
+    "D200",   # One-line docstring should fit on one line
+    "D205",   # 1 blank line required between summary line and description
+    "S101",   # Use of assert
+    "S104",   # Possible binding to all interfaces (OK for development)
+    "S105",   # Possible hardcoded password (OK for test tokens)
+    "S113",   # Probable use of requests call without timeout (OK for tests)
+    "S605",   # Starting a process with a shell (OK for scripts)
+    "S607",   # Starting a process with a partial executable path
+    "PLR2004", # Magic value used in comparison
+    "TRY003", # Avoid specifying long messages outside exception class
+    "TRY300", # Consider moving statement to else block
+    "TRY401", # Redundant exception object in logging.exception
+    "E501",   # Line too long (88 chars) - allow longer lines occasionally
+    "E402",   # Module level import not at top of file (OK for get-pip.py)
+    "DTZ003", # datetime.utcnow() - OK for mocks and tests
+    "SLF001", # Private member accessed - OK in mocks
+    "A002",   # Argument shadows builtin - OK for compatibility
+    "N802",   # Function name should be lowercase - OK for compatibility
+    "PTH110", # os.path.exists should use Path.exists
+    "PTH118", # os.path.join should use Path with / operator
+    "PTH123", # open() should use Path.open
+    "PLW2901", # Loop variable overwritten
+    "F401",   # Imported but unused (OK for optional imports)
+    "PLW1508", # Invalid type for environment variable default
+    "B017",   # pytest.raises(Exception) too broad
+    "PT011",  # pytest.raises too broad
+    "ARG001", # Unused function argument
+    "ARG002", # Unused method argument
+    "EM101",  # Exception string literal
+    "SIM117", # Nested with statements
+    "E722",   # Bare except
+    "EXE001", # Shebang present but file not executable
+    "RUF005", # Consider iterable unpacking instead of concatenation
+    "RET504", # Unnecessary assignment before return
+    "LOG015", # Call on root logger (OK for simple scripts)
+    "G004",   # Logging statement uses f-string (OK for readability)
+    "COM812", # Trailing comma missing (conflicts with formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",   # Use of assert in tests is OK
+    "PLR2004", # Magic values in tests are OK
+    "D",      # No docstrings required in tests
+]
+"**/__init__.py" = ["F401"]  # Unused imports in __init__.py
+"scripts/**/*.py" = ["T201"] # Print statements in scripts are OK
+
+[tool.ruff.lint.mccabe]
+# Maximum cyclomatic complexity
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+# Use Google docstring convention
+convention = "google"
+
+[tool.ruff.lint.isort]
+# Import sorting configuration
+known-first-party = ["telegram2whatsapp"]
+force-single-line = false
+combine-as-imports = true
+split-on-trailing-comma = true
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
+max-statements = 50
+
+[tool.mypy]
+# MyPy type checking configuration
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+no_implicit_optional = false
+warn_redundant_casts = false
+warn_unused_ignores = false
+warn_no_return = false
+warn_unreachable = false
+ignore_missing_imports = true
+strict_equality = false
+ignore_errors = true
+show_error_codes = false
+
+# Exclude problematic files
+exclude = [
+    "venv/",
+    "get-pip.py",
+    "mock_.*\\.py$",
+    "tests/test_.*\\.py$",
+]
+
+# Per-module configuration
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "mock_firestore"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "mock_encryption"
+ignore_errors = true
+
+[tool.bandit]
+# Security linting configuration
+exclude_dirs = ["tests", "venv"]
+skips = ["B101"]  # Skip assert_used test
+
+[tool.coverage.run]
+# Coverage configuration
+source = ["."]
+omit = [
+    "*/venv/*",
+    "*/tests/*",
+    "setup.py",
+    "*/migrations/*",
+    "manage.py",
+]
+branch = true
+
+[tool.coverage.report]
+# Coverage reporting
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.pytest.ini_options]
+# Pytest configuration
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "docker: marks tests as docker tests",
+    "requires_auth: marks tests that require authentication",
+    "unit: marks tests as unit tests",
+]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto" 
