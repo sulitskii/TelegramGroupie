@@ -5,9 +5,9 @@ Tests the encryption and decryption functionality using mocks for
 Google Cloud KMS to ensure fast, isolated unit testing.
 """
 
-import sys
 import base64
 import os
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
