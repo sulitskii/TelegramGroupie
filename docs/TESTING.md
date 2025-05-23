@@ -393,4 +393,156 @@ class TestDockerFeature:
 
 ---
 
-This testing guide provides comprehensive coverage of the **TelegramGroupie** testing strategy, from quick unit tests to full Docker integration testing. The organized structure ensures fast development cycles while maintaining confidence in production deployments. 
+This testing guide provides comprehensive coverage of the **TelegramGroupie** testing strategy, from quick unit tests to full Docker integration testing. The organized structure ensures fast development cycles while maintaining confidence in production deployments.
+
+## 🐳 **Enhanced Docker Testing with Compose**
+
+### **Docker Compose Architecture**
+
+Following best practices from modern Docker integration testing guides, we now use Docker Compose for comprehensive service orchestration:
+
+```yaml
+# docker-compose.test.yml
+services:
+  app:                    # Main TelegramGroupie application
+  firestore-emulator:     # Google Cloud Firestore emulator
+  test-runner:           # Dedicated test execution service
+networks:
+  test-network:          # Isolated network for service communication
+```
+
+### **Key Improvements Over Single Container**
+
+1. **Service Discovery**: Services communicate using service names (`app`, `firestore-emulator`) instead of `localhost`
+2. **Health Checks**: Proper health checks with `--wait` flag ensure services are ready
+3. **Network Isolation**: All services run in dedicated `test-network`
+4. **Dependency Management**: Services start in correct order with `depends_on` conditions
+5. **Real Service Integration**: Tests run against actual service dependencies
+
+### **Enhanced Docker Commands**
+
+```bash
+# Recommended: Full Docker Compose tests
+make docker-test-compose
+
+# Start test environment for development
+make docker-up
+
+# Check service health
+make docker-health
+
+# View service logs
+make docker-logs
+
+# Stop test environment
+make docker-down
+
+# Legacy single-container tests
+make docker-test-legacy
+```
+
+### **Local Docker Development Workflow**
+
+```bash
+# Start test environment and keep it running
+make docker-up
+
+# In another terminal, run manual tests
+curl http://localhost:8080/healthz
+
+# Run tests against running environment
+APP_URL=http://localhost:8080 python -m pytest tests/docker/ -v
+
+# Check logs if needed
+make docker-logs
+
+# Stop when done
+make docker-down
+```
+
+## 🔄 **Enhanced Pre-commit Integration**
+
+### **Comprehensive Pre-commit Commands**
+
+```bash
+# Full pre-commit suite (includes Docker if available)
+make pre-commit
+
+# Fast pre-commit (skips Docker tests)
+make pre-commit-fast
+
+# Simulate complete CI pipeline locally
+make ci-simulate
+
+# Run EVERYTHING (matches GitHub Actions exactly)
+make test-full
+```
+
+### **Conditional Docker Testing**
+
+Docker tests are smart about when to run:
+
+- **Local Development**: Always available via `make docker-test-compose`
+- **Pull Requests**: Unit + Integration tests only (fast feedback)
+- **Main Branch Pushes**: Full test suite including Docker
+- **Manual Override**: Use `SKIP_DOCKER=true make pre-commit` to skip
+
+### **Enhanced CI Pipeline Flow**
+
+```
+Pull Request (Fast):
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ Unit Tests  │───▶│Integration  │───▶│  Coverage   │
+│  (1-2 min)  │    │Tests (2min) │    │ (1-2 min)   │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+Main Branch Push (Complete):
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ Unit Tests  │───▶│Integration  │───▶│Docker Tests │───▶│  Coverage   │
+│  (1-2 min)  │    │Tests (2min) │    │ (3-4 min)   │    │ (1-2 min)   │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### **Updated GitHub Actions Workflows**
+
+#### **1. Main CI Pipeline** (`python-app.yml`)
+- ✅ **Unit Tests** → **Integration Tests** → **Docker Tests** (conditional) → **Coverage**
+- ✅ **Docker tests only run on main branch pushes** (saves CI resources)
+- ✅ **Comprehensive status checking** with final CI success job
+
+#### **2. Enhanced Docker Tests** (`docker-tests.yml`)
+- ✅ **Full Docker Compose orchestration** with `--wait` flag
+- ✅ **Service health verification** before running tests
+- ✅ **Comprehensive test execution** with proper cleanup
+- ✅ **Artifact collection** and **detailed log debugging**
+
+#### **3. Static Analysis** (`static-analysis.yml`)
+- ✅ **Robust pre-commit hooks**
+- ✅ **Ultra-fast Ruff linting**
+- ✅ **Comprehensive security scanning**
+- ✅ **Type checking with MyPy**
+
+### **Development Workflow Examples**
+
+```bash
+# Before committing (fast check)
+make pre-commit-fast
+
+# Before pushing to main (full check)
+make pre-commit
+
+# Simulate exact CI behavior
+make ci-simulate
+
+# Development with Docker services
+make docker-up
+# ... develop and test ...
+make docker-down
+
+# Quick health check
+make docker-health
+```
+
+---
+
+**🎯 Summary**: The enhanced testing setup provides a comprehensive, fast, and reliable testing pipeline that scales from quick local development to full CI/CD deployment confidence. The Docker Compose integration follows modern best practices while maintaining backward compatibility with existing workflows. 

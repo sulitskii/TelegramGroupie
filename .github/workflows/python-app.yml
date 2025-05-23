@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Control whether to run Docker tests in the main pipeline
+  RUN_DOCKER_TESTS: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
 jobs:
   # ==============================================
   # Unit Tests - Fast, Isolated
@@ -64,6 +68,59 @@ jobs:
         python -m pytest tests/integration/ -v --tb=short -m "integration"
 
   # ==============================================
+  # Docker Integration Tests (Conditional)
+  # ==============================================
+  docker-tests:
+    name: 🐳 Docker Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Set up environment
+      run: |
+        mkdir -p test-results
+        echo "COMPOSE_PROJECT_NAME=telegramgroupie-ci" >> $GITHUB_ENV
+        
+    - name: Build and start test environment
+      run: |
+        echo "🐳 Starting Docker Compose test environment..."
+        docker compose -f docker-compose.test.yml up -d --build --wait
+        
+    - name: Verify services health
+      run: |
+        echo "🔍 Verifying service health..."
+        docker compose -f docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz
+        echo "✅ Services are healthy!"
+        
+    - name: Run Docker integration tests
+      run: |
+        echo "🧪 Running Docker integration tests..."
+        docker compose -f docker-compose.test.yml run --rm test-runner
+        
+    - name: Collect Docker test results
+      if: always()
+      run: |
+        docker compose -f docker-compose.test.yml cp test-runner:/app/test-results ./test-results/ || true
+        
+    - name: Upload Docker test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: docker-test-results-ci
+        path: test-results/
+        
+    - name: Cleanup Docker environment
+      if: always()
+      run: |
+        docker compose -f docker-compose.test.yml down -v --remove-orphans
+
+  # ==============================================
   # Coverage Report
   # ==============================================
   coverage:
@@ -96,4 +153,39 @@ jobs:
       with:
         file: ./coverage.xml
         flags: unittests
-        name: codecov-umbrella 
+        name: codecov-umbrella
+
+  # ==============================================
+  # Final Status Check
+  # ==============================================
+  ci-success:
+    name: ✅ CI Success
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, coverage, docker-tests]
+    if: always()
+    
+    steps:
+    - name: Check CI status
+      run: |
+        echo "=== CI Pipeline Status ==="
+        echo "Unit Tests: ${{ needs.unit-tests.result }}"
+        echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "Coverage: ${{ needs.coverage.result }}"
+        echo "Docker Tests: ${{ needs.docker-tests.result }}"
+        
+        # Determine overall status
+        if [[ "${{ needs.unit-tests.result }}" == "success" && \
+              "${{ needs.integration-tests.result }}" == "success" && \
+              "${{ needs.coverage.result }}" == "success" ]]; then
+          
+          # Check Docker tests only if they ran
+          if [[ "${{ needs.docker-tests.result }}" == "skipped" || "${{ needs.docker-tests.result }}" == "success" ]]; then
+            echo "🎉 All CI checks passed!"
+            exit 0
+          else
+            echo "❌ Docker tests failed!"
+            exit 1
+          fi
+        else
+          echo "❌ Some CI checks failed!"
+          exit 1 
