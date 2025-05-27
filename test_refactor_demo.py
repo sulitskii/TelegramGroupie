@@ -31,8 +31,10 @@ def test_refactored_app_can_create_test_environment():
 
 
 def test_refactored_app_can_create_production_environment():
-    """Test that the refactored app can be created for production (will fail \
-without GCP creds)."""
+    """Test that the refactored app can be created for production.
+
+    This will fail without GCP credentials.
+    """
     # Reset service container to ensure clean state
     reset_service_container()
 
@@ -44,11 +46,11 @@ without GCP creds)."""
     except ValueError as e:
         # Expected - missing production environment variables
         if "Missing required environment variables" in str(e):
-            print(f"✅ Production validation correctly failed: {e}")
+            print(f"✅ Production validation correctly failed: {e!s}")
             return True
-        else:
-            print(f"❌ Unexpected error: {e}")
-            return False
+
+        print(f"❌ Unexpected error: {e}")
+        return False
 
 
 def validate_no_testing_flags():
@@ -61,14 +63,14 @@ def validate_no_testing_flags():
     with open("main.py") as f:
         main_content = f.read()
         if "TESTING" in main_content.upper():
-            print(f"❌ Found TESTING reference in main.py")
+            print("❌ Found TESTING reference in main.py")
             return False
 
     # Check service_container.py for TESTING references
     with open("service_container.py") as f:
         container_content = f.read()
         if "TESTING" in container_content.upper():
-            print(f"❌ Found TESTING reference in service_container.py")
+            print("❌ Found TESTING reference in service_container.py")
             return False
 
     print("✅ No TESTING flags in refactored code")
@@ -99,11 +101,11 @@ if __name__ == "__main__":
             create_service_container("production")
             print("❌ Expected production validation to fail, but it didn't")
         except ValueError as e:
-            print(f"✅ Production validation correctly failed: {str(e)}")
+            print(f"✅ Production validation correctly failed: {e!s}")
 
         print(
-            "\n🎉 All tests passed! The refactor successfully eliminates the \
-TESTING flag anti-pattern."
+            "\n🎉 All tests passed! The refactor successfully eliminates the "
+            "TESTING flag anti-pattern."
         )
 
     except Exception as e:
