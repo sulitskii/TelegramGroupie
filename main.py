@@ -1,232 +1,50 @@
+"""TelegramGroupie - Refactored Main Application
+
+This is the main Flask application that handles Telegram webhooks and
+provides message storage/retrieval APIs. It uses dependency injection
+to work identically in all environments without conditional logic.
+
+Key improvements:
+- No TESTING flag or conditional logic in application code
+- Uses dependency injection for all external services
+- Application logic is identical in production and testing
+- Clean separation of concerns through interfaces
+"""
+
 import asyncio
 import logging
 import os
-from datetime import datetime
 
 from flask import Flask, abort, jsonify, request
-from telegram import Update
-from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-app = Flask(__name__)
+from service_container import initialize_service_container
 
-# Set up logging first
+# Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Production-only services initialization
-logger.info("🏭 Initializing production services...")
-
-# Check if we're in testing mode
-TESTING_MODE = os.environ.get("TESTING", "false").lower() == "true"
-
-if TESTING_MODE:
-    logger.info("🧪 TESTING MODE: Using mock services")
-    # Use mock implementations for testing
-    try:
-        from mock_encryption import MockMessageEncryption
-        from mock_firestore import MockFirestoreClient
-
-        logger.info("📦 Using mock services for testing")
-
-        # Initialize mock Firestore client
-        logger.info("🔥 Initializing mock Firestore client...")
-        db = MockFirestoreClient()
-        logger.info("✅ Mock Firestore client initialized successfully")
-
-        # Initialize mock encryption
-        encryption = MockMessageEncryption(
-            project_id="test-project",
-            location_id="global",
-            key_ring_id="test-key-ring",
-            key_id="test-key-id",
-        )
-        logger.info("✅ Mock encryption service initialized successfully")
-
-        # Mock FieldFilter for testing
-        from mock_firestore import MockFieldFilter as FieldFilter
-
-    except Exception as e:
-        logger.exception(f"❌ Failed to initialize mock services: {e}")
-        raise
-else:
-    logger.info("🏭 PRODUCTION MODE: Using real GCP services")
-    try:
-        # Always use real implementations in production
-        from google.cloud import firestore
-        from google.cloud.firestore_v1.base_query import FieldFilter
-
-        from encryption import MessageEncryption
-
-        logger.info("📦 Imported Google Cloud services")
-
-        # Initialize Firestore client
-        logger.info("🔥 Initializing Firestore client...")
-        db = firestore.Client()
-        logger.info("✅ Firestore client initialized successfully")
-
-        # Get environment variables
-        project_id = os.environ.get("GCP_PROJECT_ID")
-        kms_location = os.environ.get("KMS_LOCATION", "global")
-        kms_key_ring = os.environ.get("KMS_KEY_RING", "telegram-messages")
-        kms_key_id = os.environ.get("KMS_KEY_ID", "message-key")
-
-        logger.info(
-            f"🔐 Initializing encryption with project_id={project_id}, location={kms_location}, key_ring={kms_key_ring}, key_id={kms_key_id}"
-        )
-
-        # Initialize encryption
-        encryption = MessageEncryption(
-            project_id=project_id,
-            location_id=kms_location,
-            key_ring_id=kms_key_ring,
-            key_id=kms_key_id,
-        )
-        logger.info("✅ Encryption service initialized successfully")
-
-    except Exception as e:
-        logger.exception(f"❌ Failed to initialize Google Cloud services: {e}")
-        raise
-
-# Telegram configuration
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "test-token")
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "test-secret")
-
-# Initialize Telegram Bot for production use
-if not TESTING_MODE and TELEGRAM_TOKEN != "test-token":
-    from telegram import Bot
-
-    telegram_bot = Bot(token=TELEGRAM_TOKEN)
-    logger.info("✅ Telegram Bot initialized for production")
-else:
-    # Mock bot for testing
-    class MockTelegramBot:
-        async def send_message(self, chat_id, text, parse_mode=None):
-            logger.info(f"🧪 Mock: Would send message to {chat_id}: {text}")
-            return {"message_id": 999, "chat": {"id": chat_id}}
-
-    telegram_bot = MockTelegramBot()
-    logger.info("🧪 Mock Telegram Bot initialized for testing")
-
-# Initialize Telegram application (only if not in testing mode)
-if not TESTING_MODE and TELEGRAM_TOKEN != "test-token":
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-else:
-    # Mock Telegram application for testing
-    class MockTelegramApp:
-        def __init__(self):
-            self.bot = None  # Mock bot attribute
-
-        async def process_update(self, update):
-            return None
-
-    application = MockTelegramApp()
-
-# Batch size for processing messages
-BATCH_SIZE = 500
+# Global service container (set during app creation)
+_service_container = None
+_batch_size = 500
 
 
-# Telegram message processing
-async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        message = update.message
-        chat = message.chat
-        user = message.from_user
-
-        # Encrypt the message text
-        encrypted_data = encryption.encrypt_message(message.text)
-
-        # Create message document
-        message_data = {
-            "message_id": message.message_id,
-            "chat_id": chat.id,
-            "chat_title": chat.title,
-            "user_id": user.id,
-            "username": user.username,
-            "encrypted_text": encrypted_data,  # Store encrypted data
-            "timestamp": datetime.utcnow(),
-            "type": "telegram",
-        }
-
-        # Store in Firestore
-        messages_ref = db.collection("messages")
-        messages_ref.add(message_data)
-
-        logger.info(f"💾 Stored encrypted message {message.message_id} to Firestore")
-
-        # Return stored document reference for further processing
-        return message_data["message_id"]
-
-    except Exception as e:
-        logging.exception(f"Error processing message: {e!s}")
-        return None
+def _get_service_container():
+    """Get the current service container."""
+    global _service_container  # noqa: PLW0602
+    if _service_container is None:
+        raise RuntimeError("Service container not initialized")
+    return _service_container
 
 
-# Bot response functionality
-async def send_message_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Send a response message with metadata about the received message."""
-    try:
-        message = update.message
-        chat = message.chat
-        user = message.from_user
-
-        # Determine user display name
-        user_display = user.username if user.username else user.first_name
-
-        # Determine chat type and name
-        if chat.type == "private":
-            chat_display = "private chat"
-        else:
-            chat_display = chat.title or f"group chat {chat.id}"
-
-        # Create response message
-        response_text = f"I received message from *{user_display}*, in the chat *{chat_display}*, message id #{message.message_id}"
-
-        # Send response back to the chat
-        await context.bot.send_message(
-            chat_id=chat.id, text=response_text, parse_mode="Markdown"
-        )
-
-        logging.info(
-            f"Sent response for message {message.message_id} in chat {chat.id}"
-        )
-
-    except Exception as e:
-        logging.exception(f"Error sending message response: {e!s}")
-
-
-# Combined message handler for storage and response
-async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle incoming messages: store to Firestore and send response."""
-    # Store the message
-    message_id = await process_message(update, context)
-
-    # Send response back to chat
-    await send_message_response(update, context)
-
-    return message_id
-
-
-# Telegram handler for all messages (groups and private)
-async def group_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await combined_message_handler(update, context)
-
-
-# Add Telegram handler (only for real Telegram app)
-if hasattr(application, "add_handler"):
-    application.add_handler(
-        MessageHandler(filters.ALL, group_message_handler)  # Handle all message types
-    )
-
-
-@app.route("/healthz", methods=["GET"])
-def healthz():
+def _healthz():
+    """Health check endpoint."""
     return jsonify({"status": "ok"})
 
 
-@app.route("/webhook/<secret>", methods=["POST"])
-def webhook(secret):
+def _webhook(secret):
+    """Webhook endpoint for receiving Telegram updates."""
     webhook_secret = os.environ.get("WEBHOOK_SECRET", "test-secret")
     if secret != webhook_secret:
         abort(500)  # Return 500 for invalid secret to hide endpoint
@@ -238,13 +56,13 @@ def webhook(secret):
             f"📨 Received webhook update: {update_data.get('update_id', 'unknown')}"
         )
 
-        if TESTING_MODE:
-            # Mock webhook processing for testing
-            logger.info("🧪 Mock webhook processing in testing mode")
-            return jsonify({"status": "ok"})
+        # Get services from container (no conditional logic!)
+        service_container = _get_service_container()
+        message_handler = service_container.get_message_handler()
+        update_parser = service_container.get_telegram_update_parser()
 
         # Parse the Telegram update
-        update = Update.de_json(update_data, telegram_bot)
+        update = update_parser.parse_update(update_data)
 
         # Only process message updates
         if not update.message:
@@ -255,8 +73,8 @@ def webhook(secret):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            # Store message and send response
-            loop.run_until_complete(handle_telegram_message(update))
+            # Handle message using injected handler
+            loop.run_until_complete(message_handler.handle_message(update))
             logger.info(
                 f"✅ Successfully processed message {update.message.message_id}"
             )
@@ -270,78 +88,61 @@ def webhook(secret):
         return jsonify({"error": "Internal server error"}), 500
 
 
-async def handle_telegram_message(update: Update):
-    """Handle incoming Telegram message: store to Firestore and send response."""
-    try:
-        message = update.message
-        chat = message.chat
-        user = message.from_user
-
-        logger.info(
-            f"🔄 Processing message {message.message_id} from user {user.id} in chat {chat.id}"
-        )
-
-        # 1. Encrypt and store the message
-        if message.text:
-            encrypted_data = encryption.encrypt_message(message.text)
-
-            # Create message document
-            message_data = {
-                "message_id": message.message_id,
-                "chat_id": chat.id,
-                "chat_title": chat.title,
-                "user_id": user.id,
-                "username": user.username,
-                "first_name": user.first_name,
-                "encrypted_text": encrypted_data,
-                "timestamp": datetime.utcnow(),
-                "type": "telegram",
-            }
-
-            # Store in Firestore
-            messages_ref = db.collection("messages")
-            messages_ref.add(message_data)
-
-            logger.info(
-                f"💾 Stored encrypted message {message.message_id} to Firestore"
-            )
-
-        # 2. Send response back to chat
-        # Determine user display name
-        user_display = user.username if user.username else user.first_name
-
-        # Determine chat type and name
-        if chat.type == "private":
-            chat_display = "private chat"
-        else:
-            chat_display = chat.title or f"group chat {chat.id}"
-
-        # Create response message
-        response_text = f"I received message from *{user_display}*, in the chat *{chat_display}*, message id #{message.message_id}"
-
-        # Send response back to the chat
-        await telegram_bot.send_message(
-            chat_id=chat.id, text=response_text, parse_mode="Markdown"
-        )
-
-        logger.info(
-            f"📤 Sent response for message {message.message_id} in chat {chat.id}"
-        )
-
-    except Exception as e:
-        logger.exception(f"❌ Error handling Telegram message: {e}")
-        raise
-
-
-@app.route("/webhook/<secret>", methods=["GET"])
-def webhook_method_not_allowed(secret):
+def _webhook_method_not_allowed(secret):
+    """Handle GET requests to webhook endpoint."""
     return "", 405
 
 
-# New endpoints for message access
-@app.route("/messages", methods=["GET"])
-def get_messages():
+def _process_message_documents(docs, encryption_service):
+    """Process and decrypt message documents."""
+    messages = []
+    last_doc = None
+    for doc in docs:
+        message_data = doc.to_dict()
+        # Decrypt message text
+        try:
+            message_data["text"] = encryption_service.decrypt_message(
+                message_data["encrypted_text"]
+            )
+            del message_data["encrypted_text"]  # Remove encrypted data from response
+        except Exception as e:
+            logging.exception(f"Error decrypting message: {e}")
+            message_data["text"] = "[Encrypted]"
+
+        messages.append(
+            {
+                "id": doc.id,
+                **message_data,
+            }
+        )
+        last_doc = doc
+    return messages, last_doc
+
+
+def _build_message_query(db_client, field_filter_factory, chat_id, user_id):
+    """Build query with filters."""
+    query = db_client.collection("messages")
+
+    # Add filters if provided
+    if chat_id:
+        filter_obj = field_filter_factory.create_filter("chat_id", "==", int(chat_id))
+        query = query.where(filter=filter_obj)
+    if user_id:
+        filter_obj = field_filter_factory.create_filter("user_id", "==", int(user_id))
+        query = query.where(filter=filter_obj)
+
+    return query
+
+
+def _get_messages():
+    """Retrieve messages with optional filtering."""
     try:
+        # Get services from container
+        service_container = _get_service_container()
+        db_client = service_container.get_database_client()
+        encryption_service = service_container.get_encryption_service()
+        field_filter_factory = service_container.get_field_filter_factory()
+
         # Get query parameters
         chat_id = request.args.get("chat_id")
         user_id = request.args.get("user_id")
@@ -349,17 +150,11 @@ def get_messages():
         limit = int(request.args.get("limit", 100))
 
         # Build query
-        query = db.collection("messages")
-
-        # Add filters if provided
-        if chat_id:
-            query = query.where(filter=FieldFilter("chat_id", "==", int(chat_id)))
-        if user_id:
-            query = query.where(filter=FieldFilter("user_id", "==", int(user_id)))
+        query = _build_message_query(db_client, field_filter_factory, chat_id, user_id)
 
         # Add pagination
         if start_after:
-            start_after_doc = db.collection("messages").document(start_after).get()
+            start_after_doc = db_client.collection("messages").document(start_after)
             if start_after_doc.exists:
                 query = query.start_after(start_after_doc)
 
@@ -370,29 +165,7 @@ def get_messages():
         docs = query.stream()
 
         # Process results
-        messages = []
-        last_doc = None
-        for doc in docs:
-            message_data = doc.to_dict()
-            # Decrypt message text
-            try:
-                message_data["text"] = encryption.decrypt_message(
-                    message_data["encrypted_text"]
-                )
-                del message_data[
-                    "encrypted_text"
-                ]  # Remove encrypted data from response
-            except Exception as e:
-                logging.exception(f"Error decrypting message: {e!s}")
-                message_data["text"] = "[Encrypted]"
-
-            messages.append(
-                {
-                    "id": doc.id,
-                    **message_data,
-                }
-            )
-            last_doc = doc
+        messages, last_doc = _process_message_documents(docs, encryption_service)
 
         # Prepare response
         response = {
@@ -403,53 +176,32 @@ def get_messages():
         return jsonify(response)
 
     except Exception as e:
-        logging.exception(f"Error retrieving messages: {e!s}")
+        logging.exception(f"Error retrieving messages: {e}")
         return jsonify({"error": str(e)}), 500
 
 
-# Batch processing endpoint
-@app.route("/messages/batch", methods=["POST"])
-def process_messages_batch():
+def _process_messages_batch():
+    """Process messages in batch."""
     try:
+        # Get services from container
+        service_container = _get_service_container()
+        db_client = service_container.get_database_client()
+        encryption_service = service_container.get_encryption_service()
+        field_filter_factory = service_container.get_field_filter_factory()
+
         # Get batch parameters
         chat_id = request.json.get("chat_id")
         user_id = request.json.get("user_id")
-        batch_size = int(request.json.get("batch_size", BATCH_SIZE))
+        requested_batch_size = int(request.json.get("batch_size", _batch_size))
 
         # Build query
-        query = db.collection("messages")
-
-        # Add filters if provided
-        if chat_id:
-            query = query.where(filter=FieldFilter("chat_id", "==", int(chat_id)))
-        if user_id:
-            query = query.where(filter=FieldFilter("user_id", "==", int(user_id)))
+        query = _build_message_query(db_client, field_filter_factory, chat_id, user_id)
 
         # Execute query
-        docs = query.limit(batch_size).stream()
+        docs = query.limit(requested_batch_size).stream()
 
         # Process results
-        messages = []
-        for doc in docs:
-            message_data = doc.to_dict()
-            # Decrypt message text
-            try:
-                message_data["text"] = encryption.decrypt_message(
-                    message_data["encrypted_text"]
-                )
-                del message_data[
-                    "encrypted_text"
-                ]  # Remove encrypted data from response
-            except Exception as e:
-                logging.exception(f"Error decrypting message: {e!s}")
-                message_data["text"] = "[Encrypted]"
-
-            messages.append(
-                {
-                    "id": doc.id,
-                    **message_data,
-                }
-            )
+        messages, _ = _process_message_documents(docs, encryption_service)
 
         return jsonify(
             {
@@ -459,9 +211,48 @@ def process_messages_batch():
         )
 
     except Exception as e:
-        logging.exception(f"Error processing message batch: {e!s}")
+        logging.exception(f"Error processing message batch: {e}")
         return jsonify({"error": str(e)}), 500
 
 
+def create_app(environment: str | None = None) -> Flask:
+    """Application factory that creates and configures the Flask app."""
+    global _service_container  # noqa: PLW0603
+    app = Flask(__name__)
+
+    # Initialize service container with dependency injection
+    logger.info("🚀 Initializing TelegramGroupie application...")
+    _service_container = initialize_service_container(environment)
+    logger.info("✅ TelegramGroupie application initialized successfully")
+
+    # Register routes
+    app.add_url_rule("/healthz", "healthz", _healthz, methods=["GET"])
+    app.add_url_rule("/webhook/<secret>", "webhook", _webhook, methods=["POST"])
+    app.add_url_rule(
+        "/webhook/<secret>",
+        "webhook_method_not_allowed",
+        _webhook_method_not_allowed,
+        methods=["GET"],
+    )
+    app.add_url_rule("/messages", "get_messages", _get_messages, methods=["GET"])
+    app.add_url_rule(
+        "/messages/batch",
+        "process_messages_batch",
+        _process_messages_batch,
+        methods=["POST"],
+    )
+
+    return app
+
+
+# Only create app when running directly, not during imports
+def get_app():
+    """Get or create the Flask app instance."""
+    return create_app()
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    # When running directly, create app for the current environment
+    app = create_app()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
