@@ -96,7 +96,9 @@ class ProductionServiceContainer(ServiceContainer):
             # Reuse the same optimized bot instance from ProductionTelegramBot
             # This ensures connection pool sharing between sending and parsing
             telegram_bot = self.get_telegram_bot()
-            self._telegram_update_parser = ProductionTelegramUpdateParser(telegram_bot._bot)
+            self._telegram_update_parser = ProductionTelegramUpdateParser(
+                telegram_bot._bot
+            )
         return self._telegram_update_parser
 
     def get_field_filter_factory(self) -> FieldFilterFactory:
@@ -204,6 +206,7 @@ def create_service_container(environment: str | None = None) -> ServiceContainer
         if (
             os.environ.get("FLASK_ENV") == "testing"
             or os.environ.get("APP_ENV") == "test"
+            or os.environ.get("TESTING", "").lower() in ("true", "1", "yes")
             or "pytest" in os.environ.get("_", "")
         ):
             environment = "test"
