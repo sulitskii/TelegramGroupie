@@ -79,7 +79,7 @@ fi
 
 # Verify dependency injection architecture
 echo -e "${YELLOW}🔍 Verifying dependency injection architecture...${NC}"
-if ! python -c "from service_container import create_service_container; print('✅ Service container working')" &> /dev/null; then
+if ! python -c "from src.core.service_container import create_service_container; print('✅ Service container working')" &> /dev/null; then
     echo -e "${RED}❌ Dependency injection architecture verification failed${NC}"
     exit 1
 fi

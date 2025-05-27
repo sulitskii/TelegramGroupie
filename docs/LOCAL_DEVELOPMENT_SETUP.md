@@ -178,7 +178,7 @@ pip install -r requirements-dev.txt
 ```bash
 # Verify environment detection
 APP_ENV=test python -c "
-from service_container import create_service_container
+from src.core.service_container import create_service_container
 container = create_service_container()
 print(f'Container type: {type(container).__name__}')
 "
@@ -326,11 +326,9 @@ python main.py
 For advanced development, you can create custom service implementations:
 
 ```python
-# Custom development service container
-from service_container import ServiceContainer
-from implementations.test import TestEncryptionService
-from implementations.production import ProductionDatabaseClient
+from src.core.service_container import ServiceContainer
 
+# Custom service container for development
 class DevServiceContainer(ServiceContainer):
     def get_database_client(self):
         return ProductionDatabaseClient()  # Real database
