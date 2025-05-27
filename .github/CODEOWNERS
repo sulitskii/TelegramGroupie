@@ -1,31 +1,30 @@
-# 👥 Code Owners for TelegramGroupie
-# 
-# This file defines mandatory reviewers for different parts of the codebase.
-# When branch protection is enabled, changes cannot be merged without
-# approval from designated code owners.
+# 👥 Code Owners for Telegram Bot Framework
+
+# This file defines who is responsible for reviewing changes to specific parts of the codebase.
+# Replace @your-username with your actual GitHub username.
 
 # Global ownership - all files require review from repository owner
-* @sulitskii
+* @your-username
 
-# Critical infrastructure files require extra scrutiny
-/.github/ @sulitskii
-/docs/ @sulitskii
-/scripts/ @sulitskii
-Dockerfile* @sulitskii
-docker-compose*.yml @sulitskii
-requirements*.txt @sulitskii
-Makefile @sulitskii
+# Infrastructure and deployment files require additional review
+/.github/ @your-username
+/docs/ @your-username
+/devops/scripts/ @your-username
+Dockerfile* @your-username
+docker-compose*.yml @your-username
+requirements*.txt @your-username
+Makefile @your-username
 
-# Security-sensitive files
-/encryption.py @sulitskii
-/service_container.py @sulitskii
-/implementations/production.py @sulitskii
+# Core application files require careful review
+/encryption.py @your-username
+/src/core/service_container.py @your-username
+/src/implementations/production.py @your-username
 
-# Documentation for critical systems
-/docs/KMS_KEY_PROTECTION.md @sulitskii
-/docs/BRANCH_PROTECTION_SETUP.md @sulitskii
-/docs/DEPLOYMENT_GUIDE.md @sulitskii
+# Security-sensitive files require mandatory review
+/docs/KMS_KEY_PROTECTION.md @your-username
+/docs/BRANCH_PROTECTION_SETUP.md @your-username
+/docs/DEPLOYMENT_GUIDE.md @your-username
 
 # Configuration files
-*.env.example @sulitskii
-/config/ @sulitskii 
+*.env.example @your-username
+/configuration/ @your-username 

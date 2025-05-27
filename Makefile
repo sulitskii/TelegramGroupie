@@ -1,666 +1,324 @@
-# TelegramGroupie - Makefile
-# ==============================================
-# Development, Testing, and Deployment Commands
-# ==============================================
+# Telegram Bot Framework - Makefile
+# Build automation and development commands for the Telegram bot framework
 
-.PHONY: help install test test-unit test-integration test-coverage test-all
-.PHONY: format lint type-check check quality
-.PHONY: docker-build docker-test docker-test-minimal docker-clean
-.PHONY: run run-test run-debug run-local clean clean-all
-.PHONY: docs docs-serve requirements-check security-scan
+# Colors for output
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+PURPLE := \033[0;35m
+CYAN := \033[0;36m
+WHITE := \033[1;37m
+NC := \033[0m # No Color
 
-# ==============================================
-# Enhanced Static Analysis Commands
-# ==============================================
+# Project configuration
+PROJECT_NAME := telegram-bot-framework
+DOCKER_IMAGE := $(PROJECT_NAME)
+DOCKER_TAG := latest
+COMPOSE_PROJECT_NAME := $(PROJECT_NAME)
 
-# Modern linting with Ruff (replaces flake8, black, isort)
-ruff-check: ## Run Ruff linter (ultra-fast)
-	@echo "⚡ Running Ruff linter..."
-	ruff check . --show-fixes
-	@echo "✅ Ruff linting completed"
+# Python configuration
+PYTHON := python3
+VENV_DIR := venv
+REQUIREMENTS := infrastructure/requirements/requirements.txt
+DEV_REQUIREMENTS := infrastructure/requirements/requirements-dev.txt
 
-ruff-format: ## Run Ruff formatter (replaces black)
-	@echo "⚡ Running Ruff formatter..."
-	ruff format .
-	@echo "✅ Ruff formatting completed"
+# Test configuration
+TEST_TIMEOUT := 300
+PYTEST_ARGS := -v --tb=short
+COVERAGE_MIN := 80
 
-ruff-fix: ## Run Ruff with auto-fixes
-	@echo "⚡ Running Ruff with auto-fixes..."
-	ruff check . --fix
-	@echo "✅ Ruff auto-fixes completed"
+# Docker configuration
+DOCKERFILE := infrastructure/docker/Dockerfile
+DOCKERFILE_TEST := infrastructure/docker/Dockerfile.test
+COMPOSE_TEST := infrastructure/docker/docker-compose.test.yml
+COMPOSE_FAST := infrastructure/docker/docker-compose.fast-test.yml
 
-# Legacy formatters (kept for compatibility)
-format: ruff-format ## Format code with Ruff (recommended)
-
-format-legacy: ## Format code with legacy tools
-	@echo "🎨 Formatting code with legacy tools..."
-	black .
-	isort .
-	@echo "✅ Legacy formatting completed"
-
-# Enhanced linting options
-lint: ruff-check ## Run modern linting with Ruff
-
-lint-comprehensive: ## Run comprehensive linting with multiple tools
-	@echo "🔍 Running comprehensive linting..."
-	ruff check .
-	pylint . --output-format=colorized --reports=no || true
-	@echo "✅ Comprehensive linting completed"
-
-# Security analysis
-security-scan: ## Run comprehensive security scanning
-	@echo "🛡️ Running security scans..."
-	bandit -r . -x tests/,venv/ -f screen
-	safety check
-	semgrep --config=auto . || true
-	pip-audit || true
-	@echo "✅ Security scanning completed"
-
-security-report: ## Generate detailed security reports
-	@echo "🛡️ Generating security reports..."
-	bandit -r . -x tests/,venv/ -f json -o security-bandit.json || true
-	safety check --json --output security-safety.json || true
-	semgrep --config=auto --json --output=security-semgrep.json . || true
-	pip-audit --format=json --output=security-pip-audit.json || true
-	@echo "📋 Security reports generated"
-
-# Code complexity analysis
-complexity-analysis: ## Analyze code complexity
-	@echo "📈 Running complexity analysis..."
-	radon cc . --show-complexity --min B
-	radon mi . --min B
-	xenon --max-absolute B --max-modules A --max-average A . || true
-	@echo "✅ Complexity analysis completed"
-
-complexity-report: ## Generate detailed complexity reports
-	@echo "📈 Generating complexity reports..."
-	radon cc . --json > complexity-cyclomatic.json
-	radon mi . --json > complexity-maintainability.json
-	radon raw . --json > complexity-raw.json
-	vulture . --json > complexity-deadcode.json || true
-	@echo "📋 Complexity reports generated"
-
-# Dependency analysis
-deps-analysis: ## Analyze project dependencies
-	@echo "📦 Running dependency analysis..."
-	pip-licenses --format=table
-	pipdeptree --warn silence
-	@echo "✅ Dependency analysis completed"
-
-deps-report: ## Generate dependency reports
-	@echo "📦 Generating dependency reports..."
-	pip-licenses --format=json --output-file=deps-licenses.json
-	pipdeptree --json > deps-tree.json
-	pip list --format=json > deps-installed.json
-	@echo "📋 Dependency reports generated"
-
-# Documentation analysis
-docs-check: ## Check documentation quality
-	@echo "📚 Checking documentation..."
-	pydocstyle . --convention=google --add-ignore=D100,D104 || true
-	interrogate . --fail-under=80 || true
-	@echo "✅ Documentation check completed"
-
-# Pre-commit integration
-pre-commit-install: ## Install pre-commit hooks
-	@echo "🔧 Installing pre-commit hooks..."
-	pre-commit install
-	@echo "✅ Pre-commit hooks installed"
-
-pre-commit-run: ## Run all pre-commit hooks
-	@echo "🔍 Running pre-commit hooks..."
-	pre-commit run --all-files
-	@echo "✅ Pre-commit hooks completed"
-
-pre-commit-update: ## Update pre-commit hooks
-	@echo "🔄 Updating pre-commit hooks..."
-	pre-commit autoupdate
-	@echo "✅ Pre-commit hooks updated"
-
-# Comprehensive quality gates
-quality-gate-basic: ruff-check type-check security-scan ## Basic quality gate
-	@echo "🎯 Basic quality gate passed!"
-
-quality-gate-full: lint-comprehensive type-check security-scan complexity-analysis docs-check ## Full quality gate
-	@echo "🎯 Full quality gate passed!"
-
-quality-gate-ci: ## CI/CD quality gate (fast)
-	@echo "🚀 Running fast CI/CD quality gate..."
-	ruff check .
-	ruff format --check .
-	mypy . --ignore-missing-imports
-	bandit -r *.py mock_*.py --skip B101,B104,B105,B201,B605,B607 -q
-	safety scan --short-report
-	@echo "🎯 Fast CI/CD quality gate passed!"
-
-quality-gate-ci-full: ## Complete CI/CD quality gate (matches GitHub Actions)
-	@echo "🚀 Running COMPLETE CI/CD quality gate (matches GitHub Actions)..."
-	@echo ""
-	@echo "📋 Stage 1: Pre-commit Checks"
-	-pre-commit run --all-files
-	@echo ""
-	@echo "📋 Stage 2: Ruff Analysis (Ultra-fast linting)"
-	ruff check . --output-format=github --show-fixes
-	ruff format --check .
-	-ruff check . --output-format=json > ruff-report.json
-	@echo ""
-	@echo "📋 Stage 3: Security Analysis"
-	-bandit -r *.py mock_*.py --skip B101,B104,B105,B201,B605,B607 -f json -o bandit-report.json
-	-safety scan --short-report
-	-semgrep --config=auto --json --output=semgrep-report.json .
-	@echo ""
-	@echo "📋 Stage 4: Type Checking"
-	mypy . --ignore-missing-imports
-	@echo ""
-	@echo "📋 Stage 5: Complexity Analysis"
-	-radon cc . --json > radon-complexity.json
-	-radon mi . --json > radon-maintainability.json
-	-radon raw . --json > radon-raw.json
-	-vulture . --json > vulture-report.json
-	-xenon --max-absolute B --max-modules A --max-average A .
-	@echo ""
-	@echo "📋 Stage 6: Dependency Analysis"
-	-pip-licenses --format=json --output-file=licenses.json
-	-pip-audit --format=json --output=pip-audit.json
-	-pipdeptree --json > dependency-tree.json
-	@echo ""
-	@echo "📋 Stage 7: Test Suite with Coverage"
-	python -m pytest tests/ --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
-	@echo ""
-	@echo "🎯 COMPLETE CI/CD quality gate passed! All GitHub Actions stages executed locally."
-
-# Performance analysis
-profile-performance: ## Profile application performance
-	@echo "⚡ Running performance analysis..."
-	@echo "Starting test server for profiling..."
-	APP_ENV=test python main.py &
-	sleep 3
-	py-spy record -o profile.svg -d 10 -s -- python main.py &
-	@echo "Stopping test server..."
-	@pkill -f "python main.py" || true
-	@echo "📊 Performance profile saved to profile.svg"
-
-# Code metrics dashboard
-metrics-dashboard: ## Generate comprehensive metrics dashboard
-	@echo "📊 Generating metrics dashboard..."
-	@mkdir -p reports
-	@echo "# 📊 Code Quality Dashboard" > reports/metrics.md
-	@echo "" >> reports/metrics.md
-	@echo "Generated on: $$(date)" >> reports/metrics.md
-	@echo "" >> reports/metrics.md
-	@echo "## 📈 Code Metrics" >> reports/metrics.md
-	@echo "" >> reports/metrics.md
-	@echo "\`\`\`" >> reports/metrics.md
-	@radon raw . >> reports/metrics.md
-	@echo "\`\`\`" >> reports/metrics.md
-	@echo "" >> reports/metrics.md
-	@echo "## 🧪 Test Coverage" >> reports/metrics.md
-	@echo "" >> reports/metrics.md
-	python -m pytest tests/ --cov=. --cov-report=term-missing >> reports/metrics.md || true
-	@echo "📋 Metrics dashboard saved to reports/metrics.md"
-
-# Static analysis report generation
-static-analysis-report: ## Generate comprehensive static analysis report
-	@echo "📋 Generating comprehensive static analysis report..."
-	@mkdir -p reports
-	make ruff-check > reports/ruff-output.txt 2>&1 || true
-	make security-report > reports/security-output.txt 2>&1 || true
-	make complexity-report > reports/complexity-output.txt 2>&1 || true
-	make deps-report > reports/deps-output.txt 2>&1 || true
-	@echo "📊 Static analysis reports generated in reports/ directory"
-
-# Update the main check command to use enhanced analysis
-check: quality-gate-basic ## Run enhanced code quality checks
-	@echo "🎯 Enhanced quality checks completed!"
-
-# Update quality command
-quality: quality-gate-full test ## Run full quality assurance with enhanced analysis
-	@echo "✨ Enhanced quality assurance completed!"
-
-# ==============================================
 # Default target
-# ==============================================
-
-help: ## Show this help message
-	@echo "🚀 TelegramGroupie - Available Commands"
-	@echo "=================================================="
-	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "📝 Examples:"
-	@echo "  make install          # Set up development environment"
-	@echo "  make test            # Run all tests"
-	@echo "  make docker-test     # Quick Docker integration test"
-	@echo "  make check           # Run all quality checks"
-
-# ==============================================
-# Installation and Setup
-# ==============================================
-
-install: ## Install dependencies for development
-	@echo "📦 Installing development dependencies..."
-	pip install -r infrastructure/requirements/requirements.txt
-	pip install -r infrastructure/requirements/requirements-dev.txt
-	@echo "✅ Dependencies installed"
-
-install-prod: ## Install production dependencies only
-	@echo "📦 Installing production dependencies..."
-	pip install -r infrastructure/requirements/requirements.txt
-	@echo "✅ Production dependencies installed"
-
-requirements-check: ## Check for outdated dependencies
-	@echo "🔍 Checking for outdated dependencies..."
-	pip list --outdated
-
-# ==============================================
-# Testing Commands
-# ==============================================
-
-# Fast unit tests (isolated, no external dependencies)
-test-unit: ## Run unit tests only (fast, isolated)
-	@echo "🧪 Running unit tests..."
-	python -m pytest tests/unit/ -v --tb=short -m "unit"
-
-# Integration tests with mock services
-test-integration: ## Run integration tests (with mocks)
-	@echo "🧪 Running integration tests..."
-	APP_ENV=test python -m pytest tests/integration/ -v --tb=short -m "integration"
-
-# Docker-based integration tests
-test-docker: ## Run Docker-specific integration tests
-	@echo "🐳 Running Docker integration tests..."
-	python -m pytest tests/docker/ -v -m "docker"
-
-# All tests except Docker (for CI/CD)
-test-ci: ## Run unit and integration tests (excludes Docker)
-	@echo "🧪 Running CI/CD test suite..."
-	python -m pytest tests/unit/ tests/integration/ -v --tb=short -m "unit or integration"
-
-# Complete test suite (all tests)
-test: test-unit test-integration ## Run all non-Docker tests (unit + integration)
-	@echo "🎉 All non-Docker tests completed successfully!"
-
-# Complete test suite including Docker
-test-all: test-unit test-integration test-docker ## Run comprehensive test suite (includes Docker)
-	@echo "🎉 All tests completed successfully!"
-
-# Test with coverage
-test-coverage: ## Run tests with coverage report
-	@echo "📊 Running tests with coverage..."
-	python -m pytest tests/unit/ tests/integration/ --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml -m "unit or integration"
-	@echo "📋 Coverage report generated in htmlcov/"
-
-# Test coverage including Docker tests
-test-coverage-all: ## Run all tests with coverage report
-	@echo "📊 Running all tests with coverage..."
-	python -m pytest tests/ --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml
-	@echo "📋 Coverage report generated in htmlcov/"
-
-# Quick smoke test (fastest tests only)
-test-smoke: ## Run quick smoke tests
-	@echo "💨 Running smoke tests..."
-	python -m pytest tests/unit/test_main.py::test_healthz_endpoint -v
-
-# Run specific test markers
-test-fast: ## Run only fast tests (excludes slow and docker)
-	@echo "⚡ Running fast tests..."
-	python -m pytest tests/ -v -m "not slow and not docker"
-
-test-slow: ## Run only slow tests
-	@echo "🐌 Running slow tests..."
-	python -m pytest tests/ -v -m "slow"
-
-# ==============================================
-# Code Quality Commands
-# ==============================================
-
-format: ruff-format ## Format code with Ruff (recommended)
-
-type-check: ## Run type checking with mypy
-	@echo "🔍 Running type checker..."
-	mypy . --ignore-missing-imports
-	@echo "✅ Type checking completed"
-
-# ==============================================
-# Docker Commands
-# ==============================================
-
-docker-build: ## Build Docker image
-	@echo "🏗️ Building Docker image..."
-	docker build -f infrastructure/docker/Dockerfile -t telegramgroupie:latest .
-	@echo "✅ Docker image built"
-
-# Enhanced Docker testing with Docker Compose
-docker-test-compose: ## Run comprehensive Docker Compose tests (recommended)
-	@echo "🐳 Running Docker Compose integration tests..."
-	bash devops/scripts/run-docker-compose-tests.sh
-	@echo "✅ Docker Compose tests completed"
-
-docker-test: docker-test-compose ## Run Docker integration tests (uses Docker Compose)
-
-docker-test-legacy: ## Run legacy Docker integration test (single container)
-	@echo "🐳 Running legacy Docker integration tests..."
-	bash devops/scripts/run-basic-docker-test.sh
-	@echo "✅ Legacy Docker tests completed"
-
-docker-test-fast: ## Run fast Docker tests with compose
-	@echo "🐳 Running fast Docker Compose tests..."
-	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml up --build --abort-on-container-exit
-	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml down
-	@echo "✅ Fast Docker tests completed"
-
-# Docker environment management
-docker-up: ## Start Docker Compose test environment (for development)
-	@echo "🐳 Starting Docker Compose test environment..."
-	docker compose -f infrastructure/docker/docker-compose.test.yml up -d --build --wait
-	@echo "✅ Test environment is running at http://localhost:8080"
-
-docker-down: ## Stop Docker Compose test environment
-	@echo "🐳 Stopping Docker Compose test environment..."
-	docker compose -f infrastructure/docker/docker-compose.test.yml down -v --remove-orphans
-	@echo "✅ Test environment stopped"
-
-docker-logs: ## Show Docker Compose logs
-	@echo "📋 Docker Compose logs:"
-	docker compose -f infrastructure/docker/docker-compose.test.yml logs
-
-docker-health: ## Check Docker Compose service health
-	@echo "🔍 Checking Docker service health..."
-	@echo "App health:"
-	@docker compose -f infrastructure/docker/docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz || echo "❌ App not healthy"
-	@echo "Firestore emulator health:"
-	@docker compose -f infrastructure/docker/docker-compose.test.yml exec -T firestore-emulator nc -z localhost 8080 || echo "❌ Firestore not healthy"
-	@echo "✅ Health check completed"
-
-docker-clean: ## Clean up Docker containers and images
-	@echo "🧹 Cleaning Docker resources..."
-	docker system prune -f
-	docker compose -f infrastructure/docker/docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml down -v --remove-orphans 2>/dev/null || true
-	@echo "✅ Docker cleanup completed"
-
-# ==============================================
-# Development Server Commands
-# ==============================================
-
-run: ## Run the application in production mode
-	@echo "🚀 Starting application..."
-	python main.py
-
-run-test: ## Run the application in testing mode (with mocks)
-	@echo "🧪 Starting application in testing mode..."
-	APP_ENV=test python main.py
-
-run-debug: ## Run the application in debug mode
-	@echo "🐛 Starting application in debug mode..."
-	FLASK_DEBUG=true APP_ENV=test python main.py
-
-run-local: ## Run local development environment
-	@echo "🏠 Starting local development environment..."
-	python run_local.py
-
-# ==============================================
-# Documentation Commands
-# ==============================================
-
-docs: ## Generate documentation
-	@echo "📚 Generating documentation..."
-	@echo "📋 Available documentation:"
-	@echo "  - README.md (Main documentation)"
-	@echo "  - docs/ARCHITECTURE.md (System architecture)"
-	@echo "  - docs/CI_CD_PIPELINE.md (CI/CD pipeline)"
-	@echo "  - docs/DOCKER_TESTING.md (Docker testing guide)"
-	@echo "  - SECURITY.md (Security guidelines)"
-
-docs-serve: ## Serve documentation locally (if using mkdocs)
-	@echo "📚 Serving documentation..."
-	@echo "ℹ️  Documentation is available as Markdown files"
-	@echo "   View README.md for the main documentation"
-
-# ==============================================
-# Cleanup Commands
-# ==============================================
-
-clean: ## Clean up temporary files and caches
-	@echo "🧹 Cleaning temporary files..."
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	rm -rf .pytest_cache
-	rm -rf htmlcov
-	rm -rf .coverage
-	rm -rf .mypy_cache
-	rm -rf test-results
-	@echo "✅ Cleanup completed"
-
-clean-all: clean docker-clean ## Complete cleanup (including Docker)
-	@echo "🧹 Running complete cleanup..."
-	rm -rf venv 2>/dev/null || true
-	@echo "✅ Complete cleanup finished"
-
-# ==============================================
-# CI/CD Commands
-# ==============================================
-
-ci-test: ## Run CI/CD test suite (matches GitHub Actions)
-	@echo "🚀 Running CI/CD test suite..."
-	make check
-	make test
-	make docker-test
-	@echo "🎉 CI/CD test suite completed successfully!"
-
-ci-build: ## Build for CI/CD pipeline
-	@echo "🏗️ Building for CI/CD..."
-	make docker-build
-	@echo "✅ CI/CD build completed"
-
-# ==============================================
-# Release Commands
-# ==============================================
-
-release-check: ## Check if ready for release
-	@echo "🔍 Checking release readiness..."
-	make quality
-	make docker-test
-	@echo "✅ Release checks passed"
-
-# ==============================================
-# Information Commands
-# ==============================================
-
-info: ## Show project information
-	@echo "📋 Project Information"
-	@echo "======================"
-	@echo "Project: TelegramGroupie"
-	@echo "Python: $(shell python --version)"
-	@echo "Docker: $(shell docker --version 2>/dev/null || echo 'Not installed')"
-	@echo "Git: $(shell git --version 2>/dev/null || echo 'Not installed')"
-	@echo ""
-	@echo "📁 Project Structure:"
-	@echo "  - main.py (Flask application)"
-	@echo "  - encryption.py (KMS encryption)"
-	@echo "  - mock_*.py (Testing mocks)"
-	@echo "  - tests/ (Test suite)"
-	@echo "  - docs/ (Documentation)"
-	@echo ""
-	@echo "🧪 Testing:"
-	@echo "  - Unit tests: $(shell find tests -name 'test_*.py' | wc -l) files"
-	@echo "  - Docker tests: Available"
-	@echo "  - Mock services: Enabled"
-
-status: ## Show current project status
-	@echo "📊 Project Status"
-	@echo "================="
-	@echo "Git status:"
-	@git status --short 2>/dev/null || echo "Not a git repository"
-	@echo ""
-	@echo "Dependencies:"
-	@echo "  - Production: $(shell grep -c '^[^#]' infrastructure/requirements/requirements.txt) packages"
-	@echo "  - Development: $(shell grep -c '^[^#]' infrastructure/requirements/requirements-dev.txt) packages"
-	@echo ""
-	@echo "Tests:"
-	@echo "  - Total test files: $(shell find tests -name 'test_*.py' 2>/dev/null | wc -l)"
-	@echo "  - Docker compose files: $(shell ls infrastructure/docker/docker-compose*.yml 2>/dev/null | wc -l)"
-
-# ==============================================
-# Advanced Commands
-# ==============================================
-
-benchmark: ## Run performance benchmarks
-	@echo "⚡ Running performance benchmarks..."
-	@echo "ℹ️  Starting test server..."
-	APP_ENV=test python main.py &
-	sleep 3
-	@echo "📊 Testing health endpoint performance..."
-	@ab -n 1000 -c 10 http://localhost:8080/healthz > /dev/null 2>&1 || echo "Install apache2-utils for benchmarking"
-	@echo "🛑 Stopping test server..."
-	@pkill -f "python main.py" || true
-	@echo "✅ Benchmarking completed"
-
-validate: ## Validate project configuration
-	@echo "✅ Validating project configuration..."
-	@echo "📋 Checking required files..."
-	@test -f main.py || (echo "❌ main.py missing" && exit 1)
-	@test -f infrastructure/requirements/requirements.txt || (echo "❌ requirements.txt missing" && exit 1)
-	@test -f infrastructure/docker/Dockerfile || (echo "❌ Dockerfile missing" && exit 1)
-	@test -d tests || (echo "❌ tests/ directory missing" && exit 1)
-	@echo "📋 Checking Python syntax..."
-	@python -m py_compile main.py
-	@python -m py_compile encryption.py
-	@echo "📋 Checking Docker syntax..."
-	@docker build -f infrastructure/docker/Dockerfile --dry-run . > /dev/null 2>&1 || echo "⚠️  Docker build validation failed"
-	@echo "✅ Project validation completed"
-
-# ==============================================
-# Special Targets
-# ==============================================
-
 .DEFAULT_GOAL := help
 
-# Ensure commands fail fast
+# Ensure we're using the virtual environment
+SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-# Add to help display
-.PHONY: ruff-check ruff-format ruff-fix format-legacy lint-comprehensive
-.PHONY: security-report complexity-analysis complexity-report deps-analysis deps-report docs-check
-.PHONY: pre-commit-install pre-commit-run pre-commit-update
-.PHONY: quality-gate-basic quality-gate-full quality-gate-ci profile-performance
-.PHONY: metrics-dashboard static-analysis-report
-
-# Comprehensive Testing Commands
-test-full: ## Run complete test suite including Docker tests
-	@echo "🚀 Running COMPLETE test suite (matches GitHub Actions)..."
-	@echo ""
-	@echo "📋 Stage 1: Unit Tests"
-	make test-unit
-	@echo ""
-	@echo "📋 Stage 2: Integration Tests"
-	make test-integration
-	@echo ""
-	@echo "📋 Stage 3: Docker Integration Tests"
-	make docker-test-compose
-	@echo ""
-	@echo "📋 Stage 4: Coverage Report"
-	make test-coverage
-	@echo ""
-	@echo "🎉 COMPLETE test suite passed! Ready for deployment."
-
-# Pre-commit test suite (fast but comprehensive)
-pre-commit: ## Run comprehensive pre-commit test suite
-	@echo "🔄 Running pre-commit test suite..."
-	@echo ""
-	@echo "📋 Stage 1: Code Quality & Security"
-	make quality-gate-ci
-	@echo ""
-	@echo "📋 Stage 2: Unit Tests (fast)"
-	make test-unit
-	@echo ""
-	@echo "📋 Stage 3: Integration Tests"
-	make test-integration
-	@echo ""
-	@echo "📋 Stage 4: Docker Tests (conditional)"
-	@if [ "$$SKIP_DOCKER" != "true" ]; then \
-		echo "🐳 Running Docker tests..."; \
-		make docker-test-compose; \
-	else \
-		echo "⏭️  Skipping Docker tests (SKIP_DOCKER=true)"; \
-	fi
-	@echo ""
-	@echo "🎯 Pre-commit test suite PASSED! Ready to commit."
-
-# Quick pre-commit (skips Docker tests)
-pre-commit-fast: ## Run fast pre-commit checks (no Docker)
-	@echo "⚡ Running fast pre-commit checks..."
-	SKIP_DOCKER=true make pre-commit
-	@echo "🎯 Fast pre-commit checks PASSED!"
-
-# CI simulation (exactly matches GitHub Actions)
-ci-simulate: ## Simulate complete CI pipeline locally
-	@echo "🤖 Simulating GitHub Actions CI pipeline..."
-	@echo ""
-	@echo "=== Unit Tests Job ==="
-	make test-unit
-	@echo ""
-	@echo "=== Integration Tests Job ==="
-	make test-integration
-	@echo ""
-	@echo "=== Docker Tests Job ==="
-	make docker-test-compose
-	@echo ""
-	@echo "=== Coverage Job ==="
-	make test-coverage
-	@echo ""
-	@echo "=== Static Analysis Job ==="
-	make quality-gate-ci
-	@echo ""
-	@echo "🎉 CI simulation PASSED! GitHub Actions will succeed."
-
-check-kms: ## Check KMS key health and accessibility
-	@echo "🔐 Checking KMS key health..."
-	@./devops/scripts/check-kms-health.sh
-
-backup-kms: ## Backup KMS configuration and metadata
-	@echo "💾 Backing up KMS configuration..."
-	@./devops/scripts/backup-kms-config.sh
-
-backup-kms-to-gcs: ## Backup KMS configuration to Google Cloud Storage (requires BACKUP_BUCKET env var)
-	@if [ -z "$(BACKUP_BUCKET)" ]; then \
-		echo "❌ Error: BACKUP_BUCKET environment variable is required"; \
-		echo "   Example: make backup-kms-to-gcs BACKUP_BUCKET=gs://my-backup-bucket"; \
+# Check if virtual environment is activated
+check-venv:
+	@if [ -z "$$VIRTUAL_ENV" ]; then \
+		echo -e "$(RED)❌ Virtual environment not activated$(NC)"; \
+		echo -e "$(YELLOW)💡 Run: source $(VENV_DIR)/bin/activate$(NC)"; \
 		exit 1; \
 	fi
-	@echo "💾 Backing up KMS configuration to $(BACKUP_BUCKET)..."
-	@./devops/scripts/backup-kms-config.sh -b $(BACKUP_BUCKET)
 
-verify-branch-protection: ## Verify GitHub branch protection is properly configured
-	@echo "🛡️ Verifying branch protection..."
-	@./devops/scripts/verify-branch-protection.sh
+# Development Environment Setup
+.PHONY: dev-setup
+dev-setup: ## 🔧 Set up development environment
+	@echo -e "$(BLUE)🔧 Setting up development environment...$(NC)"
+	@if [ ! -d "$(VENV_DIR)" ]; then \
+		echo -e "$(YELLOW)📦 Creating virtual environment...$(NC)"; \
+		$(PYTHON) -m venv $(VENV_DIR); \
+	fi
+	@echo -e "$(YELLOW)📦 Installing dependencies...$(NC)"
+	@source $(VENV_DIR)/bin/activate && pip install --upgrade pip
+	@source $(VENV_DIR)/bin/activate && pip install -r $(REQUIREMENTS)
+	@if [ -f "$(DEV_REQUIREMENTS)" ]; then \
+		source $(VENV_DIR)/bin/activate && pip install -r $(DEV_REQUIREMENTS); \
+	fi
+	@echo -e "$(GREEN)✅ Development environment ready!$(NC)"
+	@echo -e "$(CYAN)💡 Activate with: source $(VENV_DIR)/bin/activate$(NC)"
 
-setup-branch-protection: ## Show instructions for setting up GitHub branch protection
-	@echo "🛡️ GitHub Branch Protection Setup"
-	@echo "=================================="
+.PHONY: dev-clean
+dev-clean: ## 🧹 Clean development environment
+	@echo -e "$(YELLOW)🧹 Cleaning development environment...$(NC)"
+	@rm -rf $(VENV_DIR)
+	@rm -rf __pycache__ .pytest_cache .coverage htmlcov
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo -e "$(GREEN)✅ Development environment cleaned$(NC)"
+
+.PHONY: dev-run
+dev-run: check-venv ## 🚀 Run application in development mode
+	@echo -e "$(BLUE)🚀 Starting development server...$(NC)"
+	@APP_ENV=test $(PYTHON) main.py
+
+.PHONY: dev-test
+dev-test: check-venv ## 🧪 Run tests in development mode
+	@echo -e "$(BLUE)🧪 Running development tests...$(NC)"
+	@$(PYTHON) -m pytest tests/unit/ $(PYTEST_ARGS)
+
+# Testing Commands
+.PHONY: test-unit
+test-unit: check-venv ## 🧪 Run unit tests
+	@echo -e "$(BLUE)🧪 Running unit tests...$(NC)"
+	@$(PYTHON) -m pytest tests/unit/ $(PYTEST_ARGS) -m "unit"
+
+.PHONY: test-docker
+test-docker: ## 🐳 Run Docker integration tests
+	@echo -e "$(BLUE)🐳 Running Docker integration tests...$(NC)"
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo -e "$(RED)❌ Docker not found. Please install Docker.$(NC)"; \
+		exit 1; \
+	fi
+	@docker compose -f $(COMPOSE_TEST) down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f $(COMPOSE_TEST) up --build --abort-on-container-exit
+	@docker compose -f $(COMPOSE_TEST) down -v --remove-orphans
+
+.PHONY: test-fast
+test-fast: ## ⚡ Run fast Docker tests
+	@echo -e "$(BLUE)⚡ Running fast Docker tests...$(NC)"
+	@docker compose -f $(COMPOSE_FAST) down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f $(COMPOSE_FAST) up --build --abort-on-container-exit
+	@docker compose -f $(COMPOSE_FAST) down -v --remove-orphans
+
+.PHONY: test-coverage
+test-coverage: check-venv ## 📊 Run tests with coverage report
+	@echo -e "$(BLUE)📊 Running tests with coverage...$(NC)"
+	@$(PYTHON) -m pytest tests/unit/ --cov=. --cov-report=html --cov-report=term-missing --cov-fail-under=$(COVERAGE_MIN)
+	@echo -e "$(GREEN)✅ Coverage report generated in htmlcov/$(NC)"
+
+.PHONY: test-all
+test-all: test-unit test-docker ## 🎯 Run all tests
+	@echo -e "$(GREEN)✅ All tests completed$(NC)"
+
+# Code Quality
+.PHONY: lint
+lint: check-venv ## 🔍 Run code linting
+	@echo -e "$(BLUE)🔍 Running code linting...$(NC)"
+	@ruff check . --output-format=github
+
+.PHONY: lint-fix
+lint-fix: check-venv ## 🔧 Fix linting issues
+	@echo -e "$(BLUE)🔧 Fixing linting issues...$(NC)"
+	@ruff check . --fix
+
+.PHONY: format
+format: check-venv ## 🎨 Format code
+	@echo -e "$(BLUE)🎨 Formatting code...$(NC)"
+	@ruff format .
+
+.PHONY: type-check
+type-check: check-venv ## 🔍 Run type checking
+	@echo -e "$(BLUE)🔍 Running type checking...$(NC)"
+	@mypy . || echo -e "$(YELLOW)⚠️ Type checking completed with warnings$(NC)"
+
+.PHONY: security-scan
+security-scan: check-venv ## 🔒 Run security scanning
+	@echo -e "$(BLUE)🔒 Running security scan...$(NC)"
+	@bandit -r . -f json -o bandit-report.json || echo -e "$(YELLOW)⚠️ Security scan completed - review bandit-report.json$(NC)"
+
+.PHONY: quality-check
+quality-check: lint type-check security-scan ## ✅ Run all quality checks
+	@echo -e "$(GREEN)✅ All quality checks completed$(NC)"
+
+# Docker Commands
+.PHONY: build
+build: ## 🏗️ Build Docker image
+	@echo -e "$(BLUE)🏗️ Building Docker image...$(NC)"
+	@docker build -f $(DOCKERFILE) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@echo -e "$(GREEN)✅ Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG)$(NC)"
+
+.PHONY: build-test
+build-test: ## 🏗️ Build test Docker image
+	@echo -e "$(BLUE)🏗️ Building test Docker image...$(NC)"
+	@docker build -f $(DOCKERFILE_TEST) -t $(DOCKER_IMAGE):test .
+	@echo -e "$(GREEN)✅ Test Docker image built: $(DOCKER_IMAGE):test$(NC)"
+
+.PHONY: run-docker
+run-docker: build ## 🐳 Run Docker container locally
+	@echo -e "$(BLUE)🐳 Running Docker container...$(NC)"
+	@docker run -p 8080:8080 \
+		-e APP_ENV=test \
+		-e GCP_PROJECT_ID=test-project \
+		-e TELEGRAM_TOKEN=test-token \
+		-e WEBHOOK_SECRET=test-secret \
+		$(DOCKER_IMAGE):$(DOCKER_TAG)
+
+.PHONY: docker-clean
+docker-clean: ## 🧹 Clean Docker resources
+	@echo -e "$(YELLOW)🧹 Cleaning Docker resources...$(NC)"
+	@docker compose -f $(COMPOSE_TEST) down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f $(COMPOSE_FAST) down -v --remove-orphans 2>/dev/null || true
+	@docker system prune -f
+	@echo -e "$(GREEN)✅ Docker resources cleaned$(NC)"
+
+# Environment Management
+.PHONY: env-test
+env-test: ## 🧪 Start test environment
+	@echo -e "$(BLUE)🧪 Starting test environment...$(NC)"
+	@docker compose -f $(COMPOSE_TEST) up -d
+	@echo -e "$(GREEN)✅ Test environment is running at http://localhost:8080$(NC)"
+
+.PHONY: env-stop
+env-stop: ## ⏹️ Stop test environment
+	@echo -e "$(YELLOW)⏹️ Stopping test environment...$(NC)"
+	@docker compose -f $(COMPOSE_TEST) down
+	@docker compose -f $(COMPOSE_FAST) down
+
+.PHONY: env-logs
+env-logs: ## 📋 Show environment logs
+	@docker compose -f $(COMPOSE_TEST) logs -f
+
+.PHONY: env-health
+env-health: ## 🏥 Check environment health
+	@echo -e "$(BLUE)🏥 Checking environment health...$(NC)"
+	@docker compose -f $(COMPOSE_TEST) exec -T app curl -f http://localhost:8080/healthz || echo "❌ App not healthy"
+
+# Deployment Commands
+.PHONY: deploy-staging
+deploy-staging: ## 🚀 Deploy to staging environment
+	@echo -e "$(BLUE)🚀 Deploying to staging...$(NC)"
+	@if [ -z "$$GCP_PROJECT_ID" ]; then \
+		echo -e "$(RED)❌ GCP_PROJECT_ID environment variable required$(NC)"; \
+		exit 1; \
+	fi
+	@./devops/scripts/deploy.sh -p "$$GCP_PROJECT_ID" -e staging
+
+.PHONY: deploy-production
+deploy-production: ## 🚀 Deploy to production environment
+	@echo -e "$(BLUE)🚀 Deploying to production...$(NC)"
+	@if [ -z "$$GCP_PROJECT_ID" ]; then \
+		echo -e "$(RED)❌ GCP_PROJECT_ID environment variable required$(NC)"; \
+		exit 1; \
+	fi
+	@./devops/scripts/deploy.sh -p "$$GCP_PROJECT_ID" -e production
+
+# Utility Commands
+.PHONY: clean
+clean: dev-clean docker-clean ## 🧹 Clean all build artifacts
+	@echo -e "$(GREEN)✅ All artifacts cleaned$(NC)"
+
+.PHONY: install
+install: dev-setup ## 📦 Install dependencies
+	@echo -e "$(GREEN)✅ Dependencies installed$(NC)"
+
+.PHONY: update
+update: check-venv ## 🔄 Update dependencies
+	@echo -e "$(BLUE)🔄 Updating dependencies...$(NC)"
+	@pip install --upgrade pip
+	@pip install -r $(REQUIREMENTS) --upgrade
+	@if [ -f "$(DEV_REQUIREMENTS)" ]; then \
+		pip install -r $(DEV_REQUIREMENTS) --upgrade; \
+	fi
+	@echo -e "$(GREEN)✅ Dependencies updated$(NC)"
+
+.PHONY: freeze
+freeze: check-venv ## 📋 Freeze current dependencies
+	@echo -e "$(BLUE)📋 Freezing dependencies...$(NC)"
+	@pip freeze > requirements-frozen.txt
+	@echo -e "$(GREEN)✅ Dependencies frozen to requirements-frozen.txt$(NC)"
+
+# Performance Testing
+.PHONY: benchmark
+benchmark: ## 📈 Run performance benchmarks
+	@echo -e "$(BLUE)📈 Running performance benchmarks...$(NC)"
+	@ab -n 1000 -c 10 http://localhost:8080/healthz > /dev/null 2>&1 || echo "Install apache2-utils for benchmarking"
+
+# Documentation
+.PHONY: docs
+docs: ## 📚 Generate documentation
+	@echo -e "$(BLUE)📚 Documentation available in docs/ directory$(NC)"
+	@echo -e "$(CYAN)📖 Key documents:$(NC)"
+	@echo -e "  • README.md - Project overview"
+	@echo -e "  • docs/DEPLOYMENT_GUIDE.md - Deployment instructions"
+	@echo -e "  • docs/TESTING.md - Testing guide"
+	@echo -e "  • docs/ARCHITECTURE.md - System architecture"
+
+# Information
+.PHONY: info
+info: ## ℹ️ Show project information
+	@echo -e "$(CYAN)📋 Project Information$(NC)"
+	@echo -e "Project: $(PROJECT_NAME)"
+	@echo -e "Docker Image: $(DOCKER_IMAGE):$(DOCKER_TAG)"
+	@echo -e "Python: $(shell $(PYTHON) --version 2>/dev/null || echo 'Not found')"
+	@echo -e "Docker: $(shell docker --version 2>/dev/null || echo 'Not found')"
+	@echo -e "Virtual Env: $(shell echo $$VIRTUAL_ENV || echo 'Not activated')"
+
+# Branch Protection
+.PHONY: verify-branch-protection
+verify-branch-protection: ## 🛡️ Verify branch protection settings
+	@echo -e "$(BLUE)🛡️ Verifying branch protection settings...$(NC)"
+	@if command -v gh >/dev/null 2>&1; then \
+		./devops/scripts/verify-branch-protection.sh; \
+	else \
+		echo -e "$(YELLOW)⚠️ GitHub CLI not installed. Install with: brew install gh$(NC)"; \
+		echo -e "$(CYAN)💡 Manual verification:$(NC)"; \
+		echo -e "   https://github.com/YOUR-USERNAME/YOUR-REPOSITORY/settings/branches"; \
+	fi
+
+.PHONY: setup-branch-protection
+setup-branch-protection: ## 🛡️ Show branch protection setup instructions
+	@echo -e "$(BLUE)🛡️ Branch Protection Setup Instructions$(NC)"
+	@echo -e "$(CYAN)📖 Complete setup guide: docs/BRANCH_PROTECTION_SETUP.md$(NC)"
+	@echo -e "$(YELLOW)🔗 Quick setup:$(NC)"
+	@echo -e "   1. Go to: https://github.com/YOUR-USERNAME/YOUR-REPOSITORY/settings/branches"
+	@echo -e "   2. Add rule for 'main' branch"
+	@echo -e "   3. Enable: 'Require pull request reviews before merging'"
+	@echo -e "   4. Enable: 'Require status checks to pass before merging'"
+
+# Help
+.PHONY: help
+help: ## 📖 Show this help message
+	@echo -e "$(BLUE)🚀 $(PROJECT_NAME) - Available Commands$(NC)"
 	@echo ""
-	@echo "📋 To protect the main branch and enforce pull request workflow:"
+	@echo -e "$(CYAN)📦 Development:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*📦|🔧|🚀|🧪|⚡/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "1. 🌐 Go to GitHub repository settings:"
-	@echo "   https://github.com/sulitskii/TelegramGroupie/settings/branches"
+	@echo -e "$(CYAN)🧪 Testing:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*🧪|🐳|📊|🎯/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "2. 📝 Click 'Add rule' and configure:"
-	@echo "   ✅ Branch name pattern: main"
-	@echo "   ✅ Require pull request before merging"
-	@echo "   ✅ Require status checks to pass"
-	@echo "   ✅ Require conversation resolution"
-	@echo "   ✅ Restrict who can push"
-	@echo "   ❌ Disable force pushes"
-	@echo "   ❌ Disable deletions"
+	@echo -e "$(CYAN)🔍 Quality:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*🔍|🎨|🔒|✅/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "3. 📋 Add required status checks:"
-	@echo "   - Unit Tests"
-	@echo "   - Static Analysis"
-	@echo "   - Docker Tests"
+	@echo -e "$(CYAN)🐳 Docker:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*🏗️|🐳|🧹/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "4. 📚 Read the complete guide:"
-	@echo "   cat docs/BRANCH_PROTECTION_SETUP.md"
+	@echo -e "$(CYAN)🚀 Deployment:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*🚀/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "5. 🔍 Verify setup:"
-	@echo "   make verify-branch-protection"
+	@echo -e "$(CYAN)🛠️ Utilities:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## .*🧹|📦|🔄|📋|📈|📚|ℹ️|🛡️|📖/ {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo -e "$(PURPLE)💡 Examples:$(NC)"
+	@echo -e "  $(WHITE)make dev-setup$(NC)     # Set up development environment"
+	@echo -e "  $(WHITE)make test-all$(NC)      # Run all tests"
+	@echo -e "  $(WHITE)make build$(NC)         # Build Docker image"
+	@echo -e "  $(WHITE)make deploy-staging$(NC) # Deploy to staging"
