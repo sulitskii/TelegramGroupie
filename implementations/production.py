@@ -162,14 +162,16 @@ class ProductionTelegramBot(TelegramBot):
         # Configure HTTPXRequest with larger connection pool for production
         request = HTTPXRequest(
             connection_pool_size=20,  # Increase from default 1 to handle concurrent requests
-            connect_timeout=20.0,     # Increase connection timeout
-            read_timeout=30.0,        # Increase read timeout
-            pool_timeout=10.0,        # Increase pool timeout from default 1.0
-            write_timeout=30.0,       # Increase write timeout
+            connect_timeout=20.0,  # Increase connection timeout
+            read_timeout=30.0,  # Increase read timeout
+            pool_timeout=10.0,  # Increase pool timeout from default 1.0
+            write_timeout=30.0,  # Increase write timeout
         )
 
         self._bot = Bot(token=token, request=request)
-        logger.info("✅ Production Telegram bot initialized successfully with optimized connection pool")
+        logger.info(
+            "✅ Production Telegram bot initialized successfully with optimized connection pool"
+        )
 
     async def send_message(
         self, chat_id: int, text: str, parse_mode: str | None = None
