@@ -11,8 +11,7 @@ app = Flask(__name__)
 
 # Set up logging first
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,9 @@ else:
         kms_key_ring = os.environ.get("KMS_KEY_RING", "telegram-messages")
         kms_key_id = os.environ.get("KMS_KEY_ID", "message-key")
 
-        logger.info(f"🔐 Initializing encryption with project_id={project_id}, location={kms_location}, key_ring={kms_key_ring}, key_id={kms_key_id}")
+        logger.info(
+            f"🔐 Initializing encryption with project_id={project_id}, location={kms_location}, key_ring={kms_key_ring}, key_id={kms_key_id}"
+        )
 
         # Initialize encryption
         encryption = MessageEncryption(
@@ -95,6 +96,7 @@ WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "test-secret")
 # Initialize Telegram Bot for production use
 if not TESTING_MODE and TELEGRAM_TOKEN != "test-token":
     from telegram import Bot
+
     telegram_bot = Bot(token=TELEGRAM_TOKEN)
     logger.info("✅ Telegram Bot initialized for production")
 else:
@@ -183,12 +185,12 @@ async def send_message_response(update: Update, context: ContextTypes.DEFAULT_TY
 
         # Send response back to the chat
         await context.bot.send_message(
-            chat_id=chat.id,
-            text=response_text,
-            parse_mode="Markdown"
+            chat_id=chat.id, text=response_text, parse_mode="Markdown"
         )
 
-        logging.info(f"Sent response for message {message.message_id} in chat {chat.id}")
+        logging.info(
+            f"Sent response for message {message.message_id} in chat {chat.id}"
+        )
 
     except Exception as e:
         logging.exception(f"Error sending message response: {e!s}")
@@ -232,7 +234,9 @@ def webhook(secret):
     try:
         # Parse the incoming update
         update_data = request.get_json(force=True)
-        logger.info(f"📨 Received webhook update: {update_data.get('update_id', 'unknown')}")
+        logger.info(
+            f"📨 Received webhook update: {update_data.get('update_id', 'unknown')}"
+        )
 
         if TESTING_MODE:
             # Mock webhook processing for testing
@@ -253,7 +257,9 @@ def webhook(secret):
         try:
             # Store message and send response
             loop.run_until_complete(handle_telegram_message(update))
-            logger.info(f"✅ Successfully processed message {update.message.message_id}")
+            logger.info(
+                f"✅ Successfully processed message {update.message.message_id}"
+            )
         finally:
             loop.close()
 
@@ -271,7 +277,9 @@ async def handle_telegram_message(update: Update):
         chat = message.chat
         user = message.from_user
 
-        logger.info(f"🔄 Processing message {message.message_id} from user {user.id} in chat {chat.id}")
+        logger.info(
+            f"🔄 Processing message {message.message_id} from user {user.id} in chat {chat.id}"
+        )
 
         # 1. Encrypt and store the message
         if message.text:
@@ -294,7 +302,9 @@ async def handle_telegram_message(update: Update):
             messages_ref = db.collection("messages")
             messages_ref.add(message_data)
 
-            logger.info(f"💾 Stored encrypted message {message.message_id} to Firestore")
+            logger.info(
+                f"💾 Stored encrypted message {message.message_id} to Firestore"
+            )
 
         # 2. Send response back to chat
         # Determine user display name
@@ -311,12 +321,12 @@ async def handle_telegram_message(update: Update):
 
         # Send response back to the chat
         await telegram_bot.send_message(
-            chat_id=chat.id,
-            text=response_text,
-            parse_mode="Markdown"
+            chat_id=chat.id, text=response_text, parse_mode="Markdown"
         )
 
-        logger.info(f"📤 Sent response for message {message.message_id} in chat {chat.id}")
+        logger.info(
+            f"📤 Sent response for message {message.message_id} in chat {chat.id}"
+        )
 
     except Exception as e:
         logger.exception(f"❌ Error handling Telegram message: {e}")
