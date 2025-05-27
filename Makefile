@@ -638,3 +638,36 @@ backup-kms-to-gcs: ## Backup KMS configuration to Google Cloud Storage (requires
 	fi
 	@echo "💾 Backing up KMS configuration to $(BACKUP_BUCKET)..."
 	@./scripts/backup-kms-config.sh -b $(BACKUP_BUCKET)
+
+verify-branch-protection: ## Verify GitHub branch protection is properly configured
+	@echo "🛡️ Verifying branch protection..."
+	@./scripts/verify-branch-protection.sh
+
+setup-branch-protection: ## Show instructions for setting up GitHub branch protection
+	@echo "🛡️ GitHub Branch Protection Setup"
+	@echo "=================================="
+	@echo ""
+	@echo "📋 To protect the main branch and enforce pull request workflow:"
+	@echo ""
+	@echo "1. 🌐 Go to GitHub repository settings:"
+	@echo "   https://github.com/sulitskii/TelegramGroupie/settings/branches"
+	@echo ""
+	@echo "2. 📝 Click 'Add rule' and configure:"
+	@echo "   ✅ Branch name pattern: main"
+	@echo "   ✅ Require pull request before merging"
+	@echo "   ✅ Require status checks to pass"
+	@echo "   ✅ Require conversation resolution"
+	@echo "   ✅ Restrict who can push"
+	@echo "   ❌ Disable force pushes"
+	@echo "   ❌ Disable deletions"
+	@echo ""
+	@echo "3. 📋 Add required status checks:"
+	@echo "   - Unit Tests"
+	@echo "   - Static Analysis"
+	@echo "   - Docker Tests"
+	@echo ""
+	@echo "4. 📚 Read the complete guide:"
+	@echo "   cat docs/BRANCH_PROTECTION_SETUP.md"
+	@echo ""
+	@echo "5. 🔍 Verify setup:"
+	@echo "   make verify-branch-protection"
