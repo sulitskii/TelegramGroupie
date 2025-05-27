@@ -1,0 +1,42 @@
+# ⚡ Fast Docker Test Configuration for TelegramGroupie
+# Optimized for speed: Uses mock services, no external dependencies
+
+services:
+  # Main application service
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - TESTING=true  # Use mock services for fast testing
+      - GCP_PROJECT_ID=test-project
+      - WEBHOOK_SECRET=test_webhook_secret_123
+      - TELEGRAM_TOKEN=test_token_123
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
+
+  # Test runner service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./tests:/app/tests
+      - ./test-results:/app/test-results
+    environment:
+      - APP_URL=http://app:8080
+    networks:
+      - test-network
+    depends_on:
+      app:
+        condition: service_healthy
+
+networks:
+  test-network:
+    driver: bridge 

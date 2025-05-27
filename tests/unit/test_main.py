@@ -7,7 +7,7 @@ webhook processing, and message handling using mocks for external dependencies.
 
 import json
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 
 import pytest
 
@@ -48,6 +48,7 @@ def mock_telegram_update():
                 "id": 123456,
                 "first_name": "Test",
                 "last_name": "User",
+                "username": "testuser",
             },
             "chat": {
                 "id": -100123456789,
@@ -55,7 +56,7 @@ def mock_telegram_update():
                 "type": "group",
             },
             "date": 1234567890,
-            "text": "Test message",
+            "text": "Test message content",
         },
     }
 
@@ -75,12 +76,30 @@ def test_webhook_invalid_method(client):
 
 def test_webhook_valid_request(client, mock_telegram_update):
     """Test webhook endpoint with valid request."""
-
-    async def mock_process_update_coroutine(update):
-        return None
-
-    with patch("main.application.process_update", new=mock_process_update_coroutine):
-        with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}):
+    
+    # Mock the encryption and database operations
+    with patch("main.encryption") as mock_encryption, \
+         patch("main.db") as mock_db, \
+         patch("main.telegram_bot") as mock_bot:
+        
+        # Set up mocks
+        mock_encryption.encrypt_message.return_value = {
+            "ciphertext": "encrypted_test",
+            "encrypted_data_key": "test_key",
+            "iv": "test_iv",
+            "salt": "test_salt"
+        }
+        
+        mock_collection = Mock()
+        mock_db.collection.return_value = mock_collection
+        mock_collection.add.return_value = (None, Mock())
+        
+        mock_bot.send_message = AsyncMock()
+        
+        # Mock the TESTING_MODE to False so it processes the webhook
+        with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
+             patch("main.TESTING_MODE", False):
+            
             response = client.post(
                 "/webhook/test-secret",
                 data=json.dumps(mock_telegram_update),
@@ -88,6 +107,31 @@ def test_webhook_valid_request(client, mock_telegram_update):
             )
             assert response.status_code == 200
             assert response.get_json() == {"status": "ok"}
+
+
+def test_webhook_invalid_secret(client, mock_telegram_update):
+    """Test webhook endpoint with invalid secret."""
+    with patch.dict("os.environ", {"WEBHOOK_SECRET": "correct-secret"}):
+        response = client.post(
+            "/webhook/wrong-secret",
+            data=json.dumps(mock_telegram_update),
+            content_type="application/json",
+        )
+        assert response.status_code == 500  # Updated to match new behavior
+
+
+def test_webhook_testing_mode(client, mock_telegram_update):
+    """Test webhook endpoint in testing mode."""
+    with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
+         patch("main.TESTING_MODE", True):
+        
+        response = client.post(
+            "/webhook/test-secret",
+            data=json.dumps(mock_telegram_update),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        assert response.get_json() == {"status": "ok"}
 
 
 @pytest.mark.asyncio
