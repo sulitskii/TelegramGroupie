@@ -14,11 +14,10 @@ Key improvements:
 import asyncio
 import logging
 import os
-from datetime import datetime
 
 from flask import Flask, abort, jsonify, request
 
-from service_container import get_service_container, initialize_service_container
+from service_container import initialize_service_container
 
 # Set up logging
 logging.basicConfig(
@@ -31,7 +30,8 @@ def create_app(environment: str | None = None) -> Flask:
     """Application factory that creates and configures the Flask app.
 
     Args:
-        environment: The environment to create the app for ('production', 'test', or None for auto-detect)
+        environment: The environment to create the app for ('production', 'test',
+                    or None for auto-detect)
 
     Returns:
         Configured Flask application

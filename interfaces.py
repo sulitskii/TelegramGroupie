@@ -5,8 +5,7 @@ enabling clean separation between the application logic and external services.
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Optional, Protocol, Union
+from typing import Any, Protocol
 
 
 class DatabaseDocument(Protocol):

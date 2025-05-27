@@ -7,7 +7,6 @@ implementations based on the environment.
 
 import logging
 import os
-from typing import Optional
 
 from interfaces import (
     DatabaseClient,
@@ -52,7 +51,10 @@ class ProductionServiceContainer(ServiceContainer):
                 missing_vars.append(f"{var} ({description})")
 
         if missing_vars:
-            msg = f"Missing required environment variables for production: {', '.join(missing_vars)}"
+            msg = (
+                f"Missing required environment variables for production: "
+                f"{', '.join(missing_vars)}"
+            )
             raise ValueError(msg)
 
     def get_database_client(self) -> DatabaseClient:
@@ -228,7 +230,8 @@ def get_service_container() -> ServiceContainer:
     global _service_container
     if _service_container is None:
         raise RuntimeError(
-            "Service container not initialized. Call initialize_service_container() first."
+            "Service container not initialized. Call initialize_service_container() "
+            "first."
         )
     return _service_container
 
@@ -238,7 +241,8 @@ def initialize_service_container(environment: str | None = None) -> ServiceConta
     global _service_container
     _service_container = create_service_container(environment)
     logger.info(
-        f"🚀 Service container initialized for {environment or 'auto-detected'} environment"
+        f"🚀 Service container initialized for "
+        f"{environment or 'auto-detected'} environment"
     )
     return _service_container
 
