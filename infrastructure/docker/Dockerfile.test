@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements first for better layer caching
-COPY requirements.txt requirements-dev.txt ./
+COPY infrastructure/requirements/requirements.txt infrastructure/requirements/requirements-dev.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt

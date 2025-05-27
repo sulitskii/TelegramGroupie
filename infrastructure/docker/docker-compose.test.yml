@@ -19,7 +19,9 @@ services:
 
   # Main application service
   app:
-    build: .
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -46,11 +48,11 @@ services:
   # Test runner service
   test-runner:
     build:
-      context: .
-      dockerfile: Dockerfile.test
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.test
     volumes:
-      - ./tests:/app/tests
-      - ./test-results:/app/test-results
+      - ../../tests:/app/tests
+      - ../../test-results:/app/test-results
     environment:
       - APP_URL=http://app:8080
       - FIRESTORE_EMULATOR_HOST=firestore-emulator:8081
