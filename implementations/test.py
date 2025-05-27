@@ -78,41 +78,54 @@ class TestDatabaseQuery:
         new_query._start_after_doc = document
         return new_query
 
+    def _apply_filters(self, docs: list[DatabaseDocument]) -> list[DatabaseDocument]:
+        """Apply filters to documents."""
+        filtered_docs = []
+        for doc in docs:
+            if self._document_matches_filters(doc):
+                filtered_docs.append(doc)
+        return filtered_docs
+
+    def _document_matches_filters(self, doc: DatabaseDocument) -> bool:
+        """Check if a document matches all filters."""
+        for filter_obj in self._filters:
+            field, value = self._extract_filter_field_value(filter_obj)
+            if field and field in doc._data and doc._data[field] != value:
+                return False
+        return True
+
+    def _extract_filter_field_value(self, filter_obj: Any) -> tuple[str | None, Any]:
+        """Extract field and value from filter object."""
+        if hasattr(filter_obj, "field") and hasattr(filter_obj, "value"):
+            return filter_obj.field, filter_obj.value
+        elif isinstance(filter_obj, dict):
+            return filter_obj.get("field"), filter_obj.get("value")
+        return None, None
+
+    def _apply_start_after(
+        self, docs: list[DatabaseDocument]
+    ) -> list[DatabaseDocument]:
+        """Apply start_after pagination."""
+        if not self._start_after_doc:
+            return docs
+
+        start_index = 0
+        for i, doc in enumerate(docs):
+            if doc.id == self._start_after_doc.id:
+                start_index = i + 1
+                break
+        return docs[start_index:]
+
     def stream(self) -> list[DatabaseDocument]:
+        """Stream documents with applied filters and pagination."""
         # Get all documents from the collection
         all_docs = self.test_client._collections.get(self.collection_name, [])
 
         # Apply filters
-        filtered_docs = []
-        for doc in all_docs:
-            matches = True
-            for filter_obj in self._filters:
-                if hasattr(filter_obj, "field") and hasattr(filter_obj, "value"):
-                    # Filter object with attributes
-                    field = filter_obj.field
-                    value = filter_obj.value
-                elif isinstance(filter_obj, dict):
-                    # Dict format
-                    field = filter_obj["field"]
-                    value = filter_obj["value"]
-                else:
-                    continue
+        filtered_docs = self._apply_filters(all_docs)
 
-                if field in doc._data and doc._data[field] != value:
-                    matches = False
-                    break
-
-            if matches:
-                filtered_docs.append(doc)
-
-        # Apply start_after
-        if self._start_after_doc:
-            start_index = 0
-            for i, doc in enumerate(filtered_docs):
-                if doc.id == self._start_after_doc.id:
-                    start_index = i + 1
-                    break
-            filtered_docs = filtered_docs[start_index:]
+        # Apply start_after pagination
+        filtered_docs = self._apply_start_after(filtered_docs)
 
         # Apply limit
         if self._limit_value:
@@ -294,9 +307,9 @@ class TestEncryptionService(EncryptionService):
 class TestTelegramBot(TelegramBot):
     """Test Telegram bot implementation."""
 
-    def __init__(self, token: str = "test-token"):
+    def __init__(self, token: str | None = None):
         logger.info("🤖 Initializing test Telegram bot...")
-        self.token = token
+        self.token = token or "test-bot-token"
         self.sent_messages = []  # Store sent messages for testing
         logger.info("✅ Test Telegram bot initialized successfully")
 
