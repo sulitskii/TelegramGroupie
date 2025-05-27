@@ -206,3 +206,99 @@ def test_app_can_be_created_multiple_times():
     with app2.test_client() as client2:
         response2 = client2.get("/healthz")
         assert response2.status_code == 200
+
+
+def test_get_messages_requires_authorization(client, monkeypatch):
+    """Test that GET /messages requires API key authorization."""
+    # Set API key in environment to enable authorization
+    monkeypatch.setenv("API_KEY", "test-api-key")
+    
+    # Test without Authorization header
+    response = client.get("/messages")
+    assert response.status_code == 401
+    assert "Authorization required" in response.get_json()["error"]
+
+    # Test with invalid Authorization format
+    response = client.get("/messages", headers={"Authorization": "InvalidFormat"})
+    assert response.status_code == 401
+    assert "Invalid authorization format" in response.get_json()["error"]
+
+    # Test with invalid API key
+    response = client.get("/messages", headers={"Authorization": "Bearer invalid-key"})
+    assert response.status_code == 403
+    assert "Invalid API key" in response.get_json()["error"]
+
+
+def test_process_messages_batch_requires_authorization(client, monkeypatch):
+    """Test that POST /messages/batch requires API key authorization."""
+    # Set API key in environment to enable authorization
+    monkeypatch.setenv("API_KEY", "test-api-key")
+    
+    # Test without Authorization header
+    response = client.post("/messages/batch", json={"batch_size": 10})
+    assert response.status_code == 401
+    assert "Authorization required" in response.get_json()["error"]
+
+    # Test with invalid Authorization format
+    response = client.post(
+        "/messages/batch", 
+        json={"batch_size": 10},
+        headers={"Authorization": "InvalidFormat"}
+    )
+    assert response.status_code == 401
+    assert "Invalid authorization format" in response.get_json()["error"]
+
+    # Test with invalid API key
+    response = client.post(
+        "/messages/batch",
+        json={"batch_size": 10}, 
+        headers={"Authorization": "Bearer invalid-key"}
+    )
+    assert response.status_code == 403
+    assert "Invalid API key" in response.get_json()["error"]
+
+
+def test_get_messages_with_valid_api_key(client, monkeypatch):
+    """Test that GET /messages works with valid API key."""
+    # Set API key in environment
+    monkeypatch.setenv("API_KEY", "test-api-key")
+    
+    # Test with valid API key
+    response = client.get("/messages", headers={"Authorization": "Bearer test-api-key"})
+    # Should not return 401/403 (may return 500 due to missing services in test)
+    assert response.status_code != 401
+    assert response.status_code != 403
+
+
+def test_process_messages_batch_with_valid_api_key(client, monkeypatch):
+    """Test that POST /messages/batch works with valid API key."""
+    # Set API key in environment
+    monkeypatch.setenv("API_KEY", "test-api-key")
+    
+    # Test with valid API key
+    response = client.post(
+        "/messages/batch",
+        json={"batch_size": 10},
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+    # Should not return 401/403 (may return 500 due to missing services in test)
+    assert response.status_code != 401
+    assert response.status_code != 403
+
+
+def test_api_endpoints_unprotected_when_no_api_key_configured(client, monkeypatch):
+    """Test that API endpoints are unprotected when API_KEY is not configured."""
+    # Ensure API_KEY is not set
+    monkeypatch.delenv("API_KEY", raising=False)
+    
+    # Test GET /messages without authorization
+    response = client.get("/messages")
+    # Should not return 401/403 (may return 500 due to missing services in test)
+    assert response.status_code != 401
+    assert response.status_code != 403
+    
+    # Test POST /messages/batch without authorization
+    response = client.post("/messages/batch", json={"batch_size": 10})
+    # Should not return 401/403 (may return 500 due to missing services in test)
+    assert response.status_code != 401
+    assert response.status_code != 403

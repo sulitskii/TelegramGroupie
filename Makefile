@@ -503,6 +503,84 @@ status: ## Show current project status
 	@echo "  - Docker compose files: $(shell ls infrastructure/docker/docker-compose*.yml 2>/dev/null | wc -l)"
 
 # ==============================================
+# Deployment Validation Commands
+# ==============================================
+
+validate-deployment: ## Validate deployment by testing webhook -> KMS -> API flow
+	@echo "🔍 Validating deployment..."
+	@if [ -z "$(BASE_URL)" ]; then \
+		echo "❌ Error: BASE_URL environment variable is required"; \
+		echo "   Example: make validate-deployment BASE_URL=https://your-app.com ENV_FILE=production.env"; \
+		exit 1; \
+	fi
+	@if [ -n "$(ENV_FILE)" ]; then \
+		echo "📁 Using environment file: $(ENV_FILE)"; \
+		python devops/scripts/validate-deployment.py --env-file $(ENV_FILE) --base-url $(BASE_URL); \
+	else \
+		echo "📁 Using current environment variables"; \
+		python devops/scripts/validate-deployment.py --base-url $(BASE_URL); \
+	fi
+
+validate-deployment-with-report: ## Validate deployment and save detailed report
+	@echo "🔍 Validating deployment with detailed report..."
+	@if [ -z "$(BASE_URL)" ]; then \
+		echo "❌ Error: BASE_URL environment variable is required"; \
+		echo "   Example: make validate-deployment-with-report BASE_URL=https://your-app.com ENV_FILE=production.env"; \
+		exit 1; \
+	fi
+	@mkdir -p reports
+	@REPORT_FILE="reports/deployment-validation-$$(date +%Y%m%d_%H%M%S).json"; \
+	if [ -n "$(ENV_FILE)" ]; then \
+		echo "📁 Using environment file: $(ENV_FILE)"; \
+		python devops/scripts/validate-deployment.py --env-file $(ENV_FILE) --base-url $(BASE_URL) --output $$REPORT_FILE; \
+	else \
+		echo "📁 Using current environment variables"; \
+		python devops/scripts/validate-deployment.py --base-url $(BASE_URL) --output $$REPORT_FILE; \
+	fi; \
+	echo "📄 Detailed report saved to: $$REPORT_FILE"
+
+validate-staging: ## Validate staging deployment (requires STAGING_URL)
+	@echo "🧪 Validating staging deployment..."
+	@if [ -z "$(STAGING_URL)" ]; then \
+		echo "❌ Error: STAGING_URL environment variable is required"; \
+		echo "   Example: make validate-staging STAGING_URL=https://staging-app.com"; \
+		exit 1; \
+	fi
+	@if [ -f "configuration/staging.env" ]; then \
+		echo "📁 Using staging environment file"; \
+		make validate-deployment BASE_URL=$(STAGING_URL) ENV_FILE=configuration/staging.env; \
+	else \
+		echo "📁 Using current environment variables"; \
+		make validate-deployment BASE_URL=$(STAGING_URL); \
+	fi
+
+validate-production: ## Validate production deployment (requires PRODUCTION_URL)
+	@echo "🚀 Validating production deployment..."
+	@if [ -z "$(PRODUCTION_URL)" ]; then \
+		echo "❌ Error: PRODUCTION_URL environment variable is required"; \
+		echo "   Example: make validate-production PRODUCTION_URL=https://your-app.com"; \
+		exit 1; \
+	fi
+	@if [ -f "configuration/production.env" ]; then \
+		echo "📁 Using production environment file"; \
+		make validate-deployment-with-report BASE_URL=$(PRODUCTION_URL) ENV_FILE=configuration/production.env; \
+	else \
+		echo "📁 Using current environment variables"; \
+		make validate-deployment-with-report BASE_URL=$(PRODUCTION_URL); \
+	fi
+
+validate-local: ## Validate local development server
+	@echo "🏠 Validating local development server..."
+	@echo "🚀 Starting local test server..."
+	@APP_ENV=test python main.py &
+	@sleep 5
+	@echo "🔍 Running validation against local server..."
+	@make validate-deployment BASE_URL=http://localhost:8080 || (echo "🛑 Stopping local server..."; pkill -f "python main.py" || true; exit 1)
+	@echo "🛑 Stopping local server..."
+	@pkill -f "python main.py" || true
+	@echo "✅ Local validation completed"
+
+# ==============================================
 # Advanced Commands
 # ==============================================
 

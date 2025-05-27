@@ -14,6 +14,7 @@ Key improvements:
 import asyncio
 import logging
 import os
+from functools import wraps
 
 from flask import Flask, abort, jsonify, request
 
@@ -36,6 +37,40 @@ def _get_service_container():
     if _service_container is None:
         raise RuntimeError("Service container not initialized")
     return _service_container
+
+
+def require_api_key(f):
+    """Decorator to require API key authorization for endpoints."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get API key from environment
+        required_api_key = os.environ.get("API_KEY")
+        if not required_api_key:
+            logger.warning("⚠️ API_KEY not configured - API endpoints are unprotected")
+            return f(*args, **kwargs)
+        
+        # Check Authorization header
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            logger.warning("🔒 Missing Authorization header")
+            return jsonify({"error": "Authorization required"}), 401
+        
+        # Extract API key from Bearer token
+        if not auth_header.startswith("Bearer "):
+            logger.warning("🔒 Invalid Authorization header format")
+            return jsonify({"error": "Invalid authorization format. Use 'Bearer <api_key>'"}), 401
+        
+        provided_api_key = auth_header[7:]  # Remove "Bearer " prefix
+        
+        # Validate API key
+        if provided_api_key != required_api_key:
+            logger.warning(f"🔒 Invalid API key provided: {provided_api_key[:8]}...")
+            return jsonify({"error": "Invalid API key"}), 403
+        
+        logger.info("✅ API key validation successful")
+        return f(*args, **kwargs)
+    
+    return decorated_function
 
 
 def _healthz():
@@ -134,6 +169,7 @@ def _build_message_query(db_client, field_filter_factory, chat_id, user_id):
     return query
 
 
+@require_api_key
 def _get_messages():
     """Retrieve messages with optional filtering."""
     try:
@@ -180,6 +216,7 @@ def _get_messages():
         return jsonify({"error": str(e)}), 500
 
 
+@require_api_key
 def _process_messages_batch():
     """Process messages in batch."""
     try:

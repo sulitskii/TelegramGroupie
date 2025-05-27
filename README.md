@@ -165,14 +165,16 @@ GET /healthz
 POST /webhook/{secret}
 ```
 
-### **Message Retrieval**
+### **Message Retrieval** (🔒 Requires Authorization)
 ```http
 GET /messages?chat_id={id}&user_id={id}&limit={n}&start_after={token}
+Authorization: Bearer your-api-key
 ```
 
-### **Batch Processing**
+### **Batch Processing** (🔒 Requires Authorization)
 ```http
 POST /messages/batch
+Authorization: Bearer your-api-key
 Content-Type: application/json
 
 {
@@ -181,6 +183,27 @@ Content-Type: application/json
   "batch_size": 500
 }
 ```
+
+### **🔐 API Authorization**
+
+Message API endpoints require API key authorization for security:
+
+```bash
+# Set API key environment variable
+export API_KEY="your-secure-api-key-here"
+
+# Make authorized requests
+curl -H "Authorization: Bearer your-api-key-here" \
+     https://your-app.com/messages
+```
+
+**Security Features:**
+- 🔒 **API Key Protection**: All message endpoints require valid API key
+- ⚠️ **Graceful Degradation**: Endpoints are unprotected if API_KEY not configured
+- 📝 **Comprehensive Logging**: All authorization attempts are logged
+- 🛡️ **Multiple Auth Checks**: Header format, key validation, and access control
+
+**For complete authorization setup and security guidelines, see [`docs/API_AUTHORIZATION.md`](docs/API_AUTHORIZATION.md)**
 
 ## 🏭 **CI/CD Pipeline**
 
