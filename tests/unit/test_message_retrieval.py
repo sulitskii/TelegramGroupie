@@ -27,11 +27,11 @@ def client():
     """Create a test client for the Flask app using dependency injection."""
     # Reset service container to ensure clean state
     reset_service_container()
-    
+
     # Create app with test environment (uses dependency injection)
     app = create_app(environment="test")
     app.config["TESTING"] = True
-    
+
     with app.test_client() as client:
         with app.app_context():
             yield client
@@ -45,7 +45,7 @@ def test_get_messages_with_test_data(client):
     assert "messages" in data
     assert "next_page_token" in data
     assert isinstance(data["messages"], list)
-    
+
     # Should have seeded test data
     assert len(data["messages"]) >= 0  # May have test data
 
@@ -57,13 +57,13 @@ def test_get_messages_with_filters(client):
     assert response.status_code == 200
     data = response.get_json()
     assert "messages" in data
-    
+
     # Test with user_id filter
     response = client.get("/messages?user_id=123456")
     assert response.status_code == 200
     data = response.get_json()
     assert "messages" in data
-    
+
     # Test with limit
     response = client.get("/messages?limit=5")
     assert response.status_code == 200
@@ -88,7 +88,7 @@ def test_process_messages_batch(client):
         "user_id": 123456,
         "batch_size": 2,
     }
-    
+
     response = client.post("/messages/batch", json=request_data)
     assert response.status_code == 200
     data = response.get_json()
@@ -103,7 +103,7 @@ def test_batch_messages_without_filters(client):
     request_data = {
         "batch_size": 10,
     }
-    
+
     response = client.post("/messages/batch", json=request_data)
     assert response.status_code == 200
     data = response.get_json()
@@ -121,7 +121,9 @@ def test_messages_endpoint_error_handling(client):
 def test_batch_endpoint_error_handling(client):
     """Test error handling in batch endpoint."""
     # Test with invalid JSON
-    response = client.post("/messages/batch", data="invalid json", content_type="application/json")
+    response = client.post(
+        "/messages/batch", data="invalid json", content_type="application/json"
+    )
     assert response.status_code == 500
 
 
@@ -132,7 +134,7 @@ def test_message_decryption_with_test_service(client):
     response = client.get("/messages")
     assert response.status_code == 200
     data = response.get_json()
-    
+
     # Check that messages (if any) have text field and no encrypted_text field
     for message in data["messages"]:
         assert "text" in message
@@ -143,15 +145,15 @@ def test_dependency_injection_isolation(client):
     """Test that each test gets isolated dependencies."""
     # This test verifies that the dependency injection system
     # provides clean, isolated services for each test
-    
+
     # Get initial state
     response1 = client.get("/messages")
     assert response1.status_code == 200
-    
+
     # The test services should be consistent within a test
     response2 = client.get("/messages")
     assert response2.status_code == 200
-    
+
     # Both responses should be successful and have same structure
     data1 = response1.get_json()
     data2 = response2.get_json()
