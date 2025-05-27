@@ -46,8 +46,18 @@ tests/
 The application automatically detects test environments and injects appropriate implementations:
 
 ```python
-# Automatic test environment detection
+from src.core.service_container import create_service_container
+
 def create_service_container(environment: str = None) -> ServiceContainer:
+    """Factory function to create the appropriate service container.
+    
+    Args:
+        environment: The environment to create the container for.
+                    If None, will be determined from environment variables.
+    
+    Returns:
+        The appropriate service container instance.
+    """
     if environment is None:
         if os.environ.get("APP_ENV") == "test":
             environment = "test"
@@ -251,8 +261,12 @@ pytest tests/ --pdb
 # Run single test with debug output
 pytest tests/unit/test_main.py::test_healthz_endpoint -v -s
 
-# Test environment detection
-APP_ENV=test python -m pytest tests/unit/ -v -s
+# Test automatic environment detection
+APP_ENV=test python -c "
+from src.core.service_container import create_service_container
+container = create_service_container()
+print(f'Auto-detected: {type(container).__name__}')
+"
 ```
 
 ## 📈 **Performance Testing**
@@ -433,7 +447,7 @@ with app.app_context():
 ```bash
 # Test automatic environment detection
 APP_ENV=test python -c "
-from service_container import create_service_container
+from src.core.service_container import create_service_container
 container = create_service_container()
 print(f'Auto-detected: {type(container).__name__}')
 "

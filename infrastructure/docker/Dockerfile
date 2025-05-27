@@ -13,8 +13,8 @@ COPY infrastructure/requirements/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY main.py interfaces.py service_container.py encryption.py ./
-COPY src/implementations/ ./src/implementations/
+COPY main.py interfaces.py encryption.py ./
+COPY src/ ./src/
 
 # Set environment variables
 ENV PORT=8080

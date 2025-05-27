@@ -15,7 +15,7 @@ sys.modules["telegram"] = Mock()
 sys.modules["telegram.ext"] = Mock()
 
 from main import create_app  # noqa: E402
-from service_container import reset_service_container  # noqa: E402
+from src.core.service_container import reset_service_container  # noqa: E402
 
 # Mark all tests in this file as unit tests
 pytestmark = pytest.mark.unit
