@@ -23,7 +23,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - TESTING=true  # Use mock services to avoid GCP credentials issues
+      - APP_ENV=test  # Use dependency injection with test implementations
       - GCP_PROJECT_ID=test-project
       - WEBHOOK_SECRET=test_webhook_secret_123
       - TELEGRAM_TOKEN=test_token_123
@@ -54,6 +54,7 @@ services:
     environment:
       - APP_URL=http://app:8080
       - FIRESTORE_EMULATOR_HOST=firestore-emulator:8081
+      - APP_ENV=test  # Ensure test environment for test runner too
     networks:
       - test-network
     depends_on:
