@@ -53,12 +53,13 @@ infrastructure/
 ## ⚙️ **DevOps & Automation**
 
 ```
+.github/                              # 🔧 GitHub integration (must be at root)
+├── CODEOWNERS                        # 👥 Code ownership rules
+└── workflows/
+    ├── python-app.yml                # 🔄 Main CI/CD pipeline
+    └── static-analysis.yml           # 🔍 Code quality checks
+
 devops/
-├── .github/
-│   ├── CODEOWNERS                    # 👥 Code ownership rules
-│   └── workflows/
-│       ├── python-app.yml            # 🔄 Main CI/CD pipeline
-│       └── static-analysis.yml       # 🔍 Code quality checks
 └── scripts/
     ├── deploy.sh                     # 🚀 Deployment automation
     ├── setup-gcp-project.sh          # ☁️ GCP project setup
@@ -73,8 +74,11 @@ devops/
 **✅ Benefits:**
 - **CI/CD pipeline** management
 - **Automation scripts** centralization
-- **GitHub integration** organization
+- **GitHub integration** at correct location (required by GitHub Actions)
 - **Branch protection** enforcement
+
+**⚠️ Important Note:**
+GitHub workflows **must** remain in `.github/workflows/` at repository root. GitHub Actions requires this specific location and will not detect workflows in other directories.
 
 ---
 
