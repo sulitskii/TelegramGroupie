@@ -123,12 +123,19 @@ def test_encryption_consistency(encryption):
 
 
 def test_encryption_error_handling(encryption):
-    """Test error handling in encryption/decryption."""
+    """Test graceful error handling in encryption/decryption."""
+    # Test that encryption handles None gracefully (should raise exception for None input)
     with pytest.raises(Exception):
         encryption.encrypt_message(None)
 
-    with pytest.raises(Exception):
-        encryption.decrypt_message(None)
+    # Test that decryption handles invalid data gracefully (returns placeholder)
+    invalid_encrypted_data = {"invalid": "data"}
+    result = encryption.decrypt_message(invalid_encrypted_data)
+    assert result == "[Message encrypted with different key]"
+    
+    # Test that decryption handles None gracefully (returns placeholder)
+    result = encryption.decrypt_message(None)
+    assert result == "[Message encrypted with different key]"
 
 
 def test_kms_client_initialization():
