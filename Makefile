@@ -173,7 +173,7 @@ quality-gate-ci-full: ## Complete CI/CD quality gate (matches GitHub Actions)
 profile-performance: ## Profile application performance
 	@echo "⚡ Running performance analysis..."
 	@echo "Starting test server for profiling..."
-	TESTING=true python main.py &
+	APP_ENV=test python main.py &
 	sleep 3
 	py-spy record -o profile.svg -d 10 -s -- python main.py &
 	@echo "Stopping test server..."
@@ -264,7 +264,7 @@ test-unit: ## Run unit tests only (fast, isolated)
 # Integration tests with mock services
 test-integration: ## Run integration tests (with mocks)
 	@echo "🧪 Running integration tests..."
-	TESTING=true python -m pytest tests/integration/ -v --tb=short -m "integration"
+	APP_ENV=test python -m pytest tests/integration/ -v --tb=short -m "integration"
 
 # Docker-based integration tests
 test-docker: ## Run Docker-specific integration tests
@@ -396,11 +396,11 @@ run: ## Run the application in production mode
 
 run-test: ## Run the application in testing mode (with mocks)
 	@echo "🧪 Starting application in testing mode..."
-	TESTING=true python main.py
+	APP_ENV=test python main.py
 
 run-debug: ## Run the application in debug mode
 	@echo "🐛 Starting application in debug mode..."
-	FLASK_DEBUG=true TESTING=true python main.py
+	FLASK_DEBUG=true APP_ENV=test python main.py
 
 run-local: ## Run local development environment
 	@echo "🏠 Starting local development environment..."
@@ -516,7 +516,7 @@ status: ## Show current project status
 benchmark: ## Run performance benchmarks
 	@echo "⚡ Running performance benchmarks..."
 	@echo "ℹ️  Starting test server..."
-	TESTING=true python main.py &
+	APP_ENV=test python main.py &
 	sleep 3
 	@echo "📊 Testing health endpoint performance..."
 	@ab -n 1000 -c 10 http://localhost:8080/healthz > /dev/null 2>&1 || echo "Install apache2-utils for benchmarking"
