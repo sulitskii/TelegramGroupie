@@ -206,7 +206,6 @@ def create_service_container(environment: str | None = None) -> ServiceContainer
         if (
             os.environ.get("FLASK_ENV") == "testing"
             or os.environ.get("APP_ENV") == "test"
-            or os.environ.get("TESTING", "").lower() in ("true", "1", "yes")
             or "pytest" in os.environ.get("_", "")
         ):
             environment = "test"
