@@ -11,6 +11,11 @@
 
 ### Step 1: Always Create Feature Branches
 ```bash
+# IMPORTANT: Always rebase to latest main before creating feature branches
+git checkout main
+git stash  # if you have uncommitted changes
+git pull origin main
+
 # ALWAYS create a new branch for every feature/fix
 git checkout -b feature/your-feature-name
 git push -u origin feature/your-feature-name
@@ -21,7 +26,10 @@ git push -u origin feature/your-feature-name
 # Run unit tests (fast)
 python -m pytest tests/unit/ -v
 
-# Run Docker integration tests (comprehensive)
+# Option A: Fast integration tests with mocks (recommended for development)
+docker-compose -f docker-compose.fast-test.yml up --build --abort-on-container-exit
+
+# Option B: Comprehensive integration tests with Firestore emulator (for thorough testing)
 docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 ```
 
