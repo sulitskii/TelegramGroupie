@@ -341,6 +341,29 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Issues**: Create GitHub issues for bugs
 - **Security**: See `SECURITY.md` for reporting vulnerabilities
 
+## 🚨 **CRITICAL: KMS Key Protection**
+
+> **⚠️ WARNING: This application uses Google Cloud KMS for message encryption. The KMS key is IRREPLACEABLE - if deleted, ALL encrypted messages become permanently unreadable!**
+
+### Essential Protection Rules:
+- **NEVER delete the KMS key or keyring**
+- **NEVER delete the GCP project without migrating keys**
+- **Always read** [`docs/KMS_KEY_PROTECTION.md`](docs/KMS_KEY_PROTECTION.md) before any infrastructure changes
+
+### Health Monitoring:
+```bash
+# Check KMS key health
+make check-kms
+
+# Create configuration backup
+make backup-kms
+
+# Full backup with Firestore data
+make backup-kms-to-gcs BACKUP_BUCKET=gs://your-backup-bucket
+```
+
+**📖 For complete KMS protection guidelines, backup strategies, and disaster recovery procedures, see [`docs/KMS_KEY_PROTECTION.md`](docs/KMS_KEY_PROTECTION.md)**
+
 ---
 
 **Built with ❤️ using clean dependency injection architecture for secure, scalable messaging infrastructure**

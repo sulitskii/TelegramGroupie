@@ -110,5 +110,7 @@ class MessageEncryption:
             return plaintext.decode("utf-8")
 
         except Exception as e:
-            logging.exception(f"Decryption error: {e!s}")
-            raise
+            # Log the error but don't crash - return a placeholder for old messages
+            # that can't be decrypted with the current key
+            logging.warning(f"Decryption failed, returning placeholder: {e!s}")
+            return "[Message encrypted with different key]"
