@@ -2,7 +2,7 @@
 Unit Tests for Flask Application Core
 
 Tests the main Flask application functionality including health endpoints,
-webhook processing, and message handling using dependency injection for 
+webhook processing, and message handling using dependency injection for
 external dependencies.
 """
 
@@ -28,11 +28,11 @@ def client():
     """Create a test client for the Flask app using dependency injection."""
     # Reset service container to ensure clean state
     reset_service_container()
-    
+
     # Create app with test environment (uses dependency injection)
     app = create_app(environment="test")
     app.config["TESTING"] = True
-    
+
     with app.test_client() as client:
         with app.app_context():
             yield client
@@ -107,7 +107,7 @@ def test_webhook_no_message_update(client):
             "text": "Edited message",
         },
     }
-    
+
     with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}):
         response = client.post(
             "/webhook/test-secret",
@@ -150,12 +150,8 @@ def test_messages_endpoint_with_filters(client):
 
 def test_messages_batch_endpoint(client):
     """Test the batch messages processing endpoint."""
-    request_data = {
-        "chat_id": -100123456789,
-        "user_id": 123456,
-        "batch_size": 5
-    }
-    
+    request_data = {"chat_id": -100123456789, "user_id": 123456, "batch_size": 5}
+
     response = client.post(
         "/messages/batch",
         data=json.dumps(request_data),
@@ -172,14 +168,14 @@ def test_app_uses_dependency_injection():
     """Test that the app correctly uses dependency injection without TESTING flags."""
     # Reset service container
     reset_service_container()
-    
+
     # Create test app
     app = create_app(environment="test")
-    
+
     # Verify the app was created successfully
     assert app is not None
     assert app.config is not None
-    
+
     # Verify routes exist
     with app.app_context():
         routes = [rule.rule for rule in app.url_map.iter_rules()]
@@ -193,20 +189,20 @@ def test_app_can_be_created_multiple_times():
     # Reset and create first app
     reset_service_container()
     app1 = create_app(environment="test")
-    
+
     # Reset and create second app
     reset_service_container()
     app2 = create_app(environment="test")
-    
+
     # Both should work independently
     assert app1 is not None
     assert app2 is not None
-    
+
     # Test both apps work
     with app1.test_client() as client1:
         response1 = client1.get("/healthz")
         assert response1.status_code == 200
-    
+
     with app2.test_client() as client2:
         response2 = client2.get("/healthz")
         assert response2.status_code == 200
