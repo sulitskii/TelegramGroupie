@@ -1,31 +1,30 @@
-# 👥 Code Owners for TelegramGroupie
-# 
-# This file defines mandatory reviewers for different parts of the codebase.
-# When branch protection is enabled, changes cannot be merged without
-# approval from designated code owners.
+# 👥 Code Owners for Telegram Bot Framework
+
+# This file defines who is responsible for reviewing changes to specific parts of the codebase.
+# Replace @your-username with your actual GitHub username.
 
 # Global ownership - all files require review from repository owner
 * @sulitskii
 
-# Critical infrastructure files require extra scrutiny
+# Infrastructure and deployment files require additional review
 /.github/ @sulitskii
 /docs/ @sulitskii
-/scripts/ @sulitskii
+/devops/scripts/ @sulitskii
 Dockerfile* @sulitskii
 docker-compose*.yml @sulitskii
 requirements*.txt @sulitskii
 Makefile @sulitskii
 
-# Security-sensitive files
+# Core application files require careful review
 /encryption.py @sulitskii
-/service_container.py @sulitskii
-/implementations/production.py @sulitskii
+/src/core/service_container.py @sulitskii
+/src/implementations/production.py @sulitskii
 
-# Documentation for critical systems
+# Security-sensitive files require mandatory review
 /docs/KMS_KEY_PROTECTION.md @sulitskii
 /docs/BRANCH_PROTECTION_SETUP.md @sulitskii
 /docs/DEPLOYMENT_GUIDE.md @sulitskii
 
 # Configuration files
 *.env.example @sulitskii
-/config/ @sulitskii 
+/configuration/ @sulitskii 
