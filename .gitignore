@@ -36,6 +36,12 @@ env/
 .env
 .env.local
 
+# Environment files created by setup scripts
+*.env
+production.env
+staging.env
+development.env
+
 # Logs
 *.log
 
@@ -148,6 +154,11 @@ poetry.lock
 # Allow CI/CD config
 !.github/
 !.github/workflows/
+
+# Allow specific config files
+!firestore.indexes.json
+!package.json
+!package-lock.json
 
 # Dependency directories
 node_modules/
