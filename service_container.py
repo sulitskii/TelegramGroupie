@@ -227,7 +227,6 @@ _service_container: ServiceContainer | None = None
 
 def get_service_container() -> ServiceContainer:
     """Get the global service container instance."""
-    global _service_container
     if _service_container is None:
         raise RuntimeError(
             "Service container not initialized. Call initialize_service_container() "
@@ -238,7 +237,7 @@ def get_service_container() -> ServiceContainer:
 
 def initialize_service_container(environment: str | None = None) -> ServiceContainer:
     """Initialize the global service container."""
-    global _service_container
+    global _service_container  # noqa: PLW0603
     _service_container = create_service_container(environment)
     logger.info(
         f"🚀 Service container initialized for "
@@ -249,5 +248,5 @@ def initialize_service_container(environment: str | None = None) -> ServiceConta
 
 def reset_service_container():
     """Reset the global service container (useful for testing)."""
-    global _service_container
+    global _service_container  # noqa: PLW0603
     _service_container = None

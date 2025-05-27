@@ -44,7 +44,7 @@ def create_app(environment: str | None = None) -> Flask:
     logger.info("✅ TelegramGroupie application initialized successfully")
 
     # Batch size for processing messages
-    BATCH_SIZE = 500
+    batch_size = 500
 
     @app.route("/healthz", methods=["GET"])
     def healthz():
@@ -197,7 +197,7 @@ def create_app(environment: str | None = None) -> Flask:
         Request body:
         - chat_id: Filter by chat ID (optional)
         - user_id: Filter by user ID (optional)
-        - batch_size: Number of messages to process (default: BATCH_SIZE)
+        - batch_size: Number of messages to process (default: batch_size)
         """
         try:
             # Get services from container
@@ -208,7 +208,7 @@ def create_app(environment: str | None = None) -> Flask:
             # Get batch parameters
             chat_id = request.json.get("chat_id")
             user_id = request.json.get("user_id")
-            batch_size = int(request.json.get("batch_size", BATCH_SIZE))
+            batch_size_param = int(request.json.get("batch_size", batch_size))
 
             # Build query
             query = db_client.collection("messages")
@@ -226,7 +226,7 @@ def create_app(environment: str | None = None) -> Flask:
                 query = query.where(filter=filter_obj)
 
             # Execute query
-            docs = query.limit(batch_size).stream()
+            docs = query.limit(batch_size_param).stream()
 
             # Process results
             messages = []
