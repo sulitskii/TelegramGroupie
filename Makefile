@@ -239,13 +239,13 @@ help: ## Show this help message
 
 install: ## Install dependencies for development
 	@echo "📦 Installing development dependencies..."
-	pip install -r requirements.txt
-	pip install -r requirements-dev.txt
+	pip install -r infrastructure/requirements/requirements.txt
+	pip install -r infrastructure/requirements/requirements-dev.txt
 	@echo "✅ Dependencies installed"
 
 install-prod: ## Install production dependencies only
 	@echo "📦 Installing production dependencies..."
-	pip install -r requirements.txt
+	pip install -r infrastructure/requirements/requirements.txt
 	@echo "✅ Production dependencies installed"
 
 requirements-check: ## Check for outdated dependencies
@@ -327,63 +327,56 @@ type-check: ## Run type checking with mypy
 
 docker-build: ## Build Docker image
 	@echo "🏗️ Building Docker image..."
-	docker build -t telegramgroupie:latest .
+	docker build -f infrastructure/docker/Dockerfile -t telegramgroupie:latest .
 	@echo "✅ Docker image built"
 
 # Enhanced Docker testing with Docker Compose
 docker-test-compose: ## Run comprehensive Docker Compose tests (recommended)
 	@echo "🐳 Running Docker Compose integration tests..."
-	bash scripts/run-docker-compose-tests.sh
+	bash devops/scripts/run-docker-compose-tests.sh
 	@echo "✅ Docker Compose tests completed"
 
 docker-test: docker-test-compose ## Run Docker integration tests (uses Docker Compose)
 
 docker-test-legacy: ## Run legacy Docker integration test (single container)
 	@echo "🐳 Running legacy Docker integration tests..."
-	bash scripts/run-basic-docker-test.sh
+	bash devops/scripts/run-basic-docker-test.sh
 	@echo "✅ Legacy Docker tests completed"
 
-docker-test-minimal: ## Run minimal Docker tests with compose
-	@echo "🐳 Running minimal Docker Compose tests..."
-	docker-compose -f docker-compose.minimal.yml up --build --abort-on-container-exit
-	docker-compose -f docker-compose.minimal.yml down
-	@echo "✅ Minimal Docker tests completed"
-
-docker-test-simple: ## Run simple Docker tests without external dependencies
-	@echo "🐳 Running simple Docker tests..."
-	docker-compose -f docker-compose.simple.yml up --build --abort-on-container-exit
-	docker-compose -f docker-compose.simple.yml down
-	@echo "✅ Simple Docker tests completed"
+docker-test-fast: ## Run fast Docker tests with compose
+	@echo "🐳 Running fast Docker Compose tests..."
+	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml up --build --abort-on-container-exit
+	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml down
+	@echo "✅ Fast Docker tests completed"
 
 # Docker environment management
 docker-up: ## Start Docker Compose test environment (for development)
 	@echo "🐳 Starting Docker Compose test environment..."
-	docker compose -f docker-compose.test.yml up -d --build --wait
+	docker compose -f infrastructure/docker/docker-compose.test.yml up -d --build --wait
 	@echo "✅ Test environment is running at http://localhost:8080"
 
 docker-down: ## Stop Docker Compose test environment
 	@echo "🐳 Stopping Docker Compose test environment..."
-	docker compose -f docker-compose.test.yml down -v --remove-orphans
+	docker compose -f infrastructure/docker/docker-compose.test.yml down -v --remove-orphans
 	@echo "✅ Test environment stopped"
 
 docker-logs: ## Show Docker Compose logs
 	@echo "📋 Docker Compose logs:"
-	docker compose -f docker-compose.test.yml logs
+	docker compose -f infrastructure/docker/docker-compose.test.yml logs
 
 docker-health: ## Check Docker Compose service health
 	@echo "🔍 Checking Docker service health..."
 	@echo "App health:"
-	@docker compose -f docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz || echo "❌ App not healthy"
+	@docker compose -f infrastructure/docker/docker-compose.test.yml exec -T app curl -f http://localhost:8080/healthz || echo "❌ App not healthy"
 	@echo "Firestore emulator health:"
-	@docker compose -f docker-compose.test.yml exec -T firestore-emulator nc -z localhost 8080 || echo "❌ Firestore not healthy"
+	@docker compose -f infrastructure/docker/docker-compose.test.yml exec -T firestore-emulator nc -z localhost 8080 || echo "❌ Firestore not healthy"
 	@echo "✅ Health check completed"
 
 docker-clean: ## Clean up Docker containers and images
 	@echo "🧹 Cleaning Docker resources..."
 	docker system prune -f
-	docker compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-	docker-compose -f docker-compose.minimal.yml down -v --remove-orphans 2>/dev/null || true
-	docker-compose -f docker-compose.simple.yml down -v --remove-orphans 2>/dev/null || true
+	docker compose -f infrastructure/docker/docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
+	docker-compose -f infrastructure/docker/docker-compose.fast-test.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "✅ Docker cleanup completed"
 
 # ==============================================
@@ -502,12 +495,12 @@ status: ## Show current project status
 	@git status --short 2>/dev/null || echo "Not a git repository"
 	@echo ""
 	@echo "Dependencies:"
-	@echo "  - Production: $(shell grep -c '^[^#]' requirements.txt) packages"
-	@echo "  - Development: $(shell grep -c '^[^#]' requirements-dev.txt) packages"
+	@echo "  - Production: $(shell grep -c '^[^#]' infrastructure/requirements/requirements.txt) packages"
+	@echo "  - Development: $(shell grep -c '^[^#]' infrastructure/requirements/requirements-dev.txt) packages"
 	@echo ""
 	@echo "Tests:"
 	@echo "  - Total test files: $(shell find tests -name 'test_*.py' 2>/dev/null | wc -l)"
-	@echo "  - Docker compose files: $(shell ls docker-compose*.yml 2>/dev/null | wc -l)"
+	@echo "  - Docker compose files: $(shell ls infrastructure/docker/docker-compose*.yml 2>/dev/null | wc -l)"
 
 # ==============================================
 # Advanced Commands
@@ -528,14 +521,14 @@ validate: ## Validate project configuration
 	@echo "✅ Validating project configuration..."
 	@echo "📋 Checking required files..."
 	@test -f main.py || (echo "❌ main.py missing" && exit 1)
-	@test -f requirements.txt || (echo "❌ requirements.txt missing" && exit 1)
-	@test -f Dockerfile || (echo "❌ Dockerfile missing" && exit 1)
+	@test -f infrastructure/requirements/requirements.txt || (echo "❌ requirements.txt missing" && exit 1)
+	@test -f infrastructure/docker/Dockerfile || (echo "❌ Dockerfile missing" && exit 1)
 	@test -d tests || (echo "❌ tests/ directory missing" && exit 1)
 	@echo "📋 Checking Python syntax..."
 	@python -m py_compile main.py
 	@python -m py_compile encryption.py
 	@echo "📋 Checking Docker syntax..."
-	@docker build --dry-run . > /dev/null 2>&1 || echo "⚠️  Docker build validation failed"
+	@docker build -f infrastructure/docker/Dockerfile --dry-run . > /dev/null 2>&1 || echo "⚠️  Docker build validation failed"
 	@echo "✅ Project validation completed"
 
 # ==============================================
@@ -624,11 +617,11 @@ ci-simulate: ## Simulate complete CI pipeline locally
 
 check-kms: ## Check KMS key health and accessibility
 	@echo "🔐 Checking KMS key health..."
-	@./scripts/check-kms-health.sh
+	@./devops/scripts/check-kms-health.sh
 
 backup-kms: ## Backup KMS configuration and metadata
 	@echo "💾 Backing up KMS configuration..."
-	@./scripts/backup-kms-config.sh
+	@./devops/scripts/backup-kms-config.sh
 
 backup-kms-to-gcs: ## Backup KMS configuration to Google Cloud Storage (requires BACKUP_BUCKET env var)
 	@if [ -z "$(BACKUP_BUCKET)" ]; then \
@@ -637,11 +630,11 @@ backup-kms-to-gcs: ## Backup KMS configuration to Google Cloud Storage (requires
 		exit 1; \
 	fi
 	@echo "💾 Backing up KMS configuration to $(BACKUP_BUCKET)..."
-	@./scripts/backup-kms-config.sh -b $(BACKUP_BUCKET)
+	@./devops/scripts/backup-kms-config.sh -b $(BACKUP_BUCKET)
 
 verify-branch-protection: ## Verify GitHub branch protection is properly configured
 	@echo "🛡️ Verifying branch protection..."
-	@./scripts/verify-branch-protection.sh
+	@./devops/scripts/verify-branch-protection.sh
 
 setup-branch-protection: ## Show instructions for setting up GitHub branch protection
 	@echo "🛡️ GitHub Branch Protection Setup"

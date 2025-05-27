@@ -59,14 +59,14 @@ class ProductionServiceContainer(ServiceContainer):
 
     def get_database_client(self) -> DatabaseClient:
         if self._db_client is None:
-            from implementations.production import ProductionDatabaseClient
+            from src.implementations.production import ProductionDatabaseClient
 
             self._db_client = ProductionDatabaseClient()
         return self._db_client
 
     def get_encryption_service(self) -> EncryptionService:
         if self._encryption_service is None:
-            from implementations.production import ProductionEncryptionService
+            from src.implementations.production import ProductionEncryptionService
 
             project_id = os.environ.get("GCP_PROJECT_ID")
             kms_location = os.environ.get("KMS_LOCATION", "global")
@@ -83,7 +83,7 @@ class ProductionServiceContainer(ServiceContainer):
 
     def get_telegram_bot(self) -> TelegramBot:
         if self._telegram_bot is None:
-            from implementations.production import ProductionTelegramBot
+            from src.implementations.production import ProductionTelegramBot
 
             token = os.environ.get("TELEGRAM_TOKEN")
             self._telegram_bot = ProductionTelegramBot(token)
@@ -91,7 +91,7 @@ class ProductionServiceContainer(ServiceContainer):
 
     def get_telegram_update_parser(self) -> TelegramUpdateParser:
         if self._telegram_update_parser is None:
-            from implementations.production import ProductionTelegramUpdateParser
+            from src.implementations.production import ProductionTelegramUpdateParser
 
             # Reuse the same optimized bot instance from ProductionTelegramBot
             # This ensures connection pool sharing between sending and parsing
@@ -103,14 +103,14 @@ class ProductionServiceContainer(ServiceContainer):
 
     def get_field_filter_factory(self) -> FieldFilterFactory:
         if self._field_filter_factory is None:
-            from implementations.production import ProductionFieldFilterFactory
+            from src.implementations.production import ProductionFieldFilterFactory
 
             self._field_filter_factory = ProductionFieldFilterFactory()
         return self._field_filter_factory
 
     def get_message_handler(self) -> MessageHandler:
         if self._message_handler is None:
-            from implementations.production import ProductionMessageHandler
+            from src.implementations.production import ProductionMessageHandler
 
             self._message_handler = ProductionMessageHandler(
                 db_client=self.get_database_client(),
@@ -135,14 +135,14 @@ class TestServiceContainer(ServiceContainer):
 
     def get_database_client(self) -> DatabaseClient:
         if self._db_client is None:
-            from implementations.test import TestDatabaseClient
+            from src.implementations.test import TestDatabaseClient
 
             self._db_client = TestDatabaseClient()
         return self._db_client
 
     def get_encryption_service(self) -> EncryptionService:
         if self._encryption_service is None:
-            from implementations.test import TestEncryptionService
+            from src.implementations.test import TestEncryptionService
 
             project_id = os.environ.get("GCP_PROJECT_ID", "test-project")
             kms_location = os.environ.get("KMS_LOCATION", "global")
@@ -159,7 +159,7 @@ class TestServiceContainer(ServiceContainer):
 
     def get_telegram_bot(self) -> TelegramBot:
         if self._telegram_bot is None:
-            from implementations.test import TestTelegramBot
+            from src.implementations.test import TestTelegramBot
 
             token = os.environ.get("TELEGRAM_TOKEN", "test-token")
             self._telegram_bot = TestTelegramBot(token)
@@ -167,21 +167,21 @@ class TestServiceContainer(ServiceContainer):
 
     def get_telegram_update_parser(self) -> TelegramUpdateParser:
         if self._telegram_update_parser is None:
-            from implementations.test import TestTelegramUpdateParser
+            from src.implementations.test import TestTelegramUpdateParser
 
             self._telegram_update_parser = TestTelegramUpdateParser()
         return self._telegram_update_parser
 
     def get_field_filter_factory(self) -> FieldFilterFactory:
         if self._field_filter_factory is None:
-            from implementations.test import TestFieldFilterFactory
+            from src.implementations.test import TestFieldFilterFactory
 
             self._field_filter_factory = TestFieldFilterFactory()
         return self._field_filter_factory
 
     def get_message_handler(self) -> MessageHandler:
         if self._message_handler is None:
-            from implementations.test import TestMessageHandler
+            from src.implementations.test import TestMessageHandler
 
             self._message_handler = TestMessageHandler(
                 db_client=self.get_database_client(),
