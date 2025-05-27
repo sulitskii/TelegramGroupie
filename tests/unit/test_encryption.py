@@ -132,7 +132,7 @@ def test_encryption_error_handling(encryption):
     invalid_encrypted_data = {"invalid": "data"}
     result = encryption.decrypt_message(invalid_encrypted_data)
     assert result == "[Message encrypted with different key]"
-    
+
     # Test that decryption handles None gracefully (returns placeholder)
     result = encryption.decrypt_message(None)
     assert result == "[Message encrypted with different key]"
