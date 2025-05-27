@@ -2,6 +2,10 @@
 
 # TelegramGroupie GCP Project Setup Script
 # This script sets up a new GCP project with all required services and resources
+#
+# ⚠️ CRITICAL: This script creates KMS encryption keys that protect ALL message data.
+# Once created, NEVER delete these keys or all encrypted messages become unreadable!
+# The keys have 30-day destruction protection, but prevention is critical.
 
 set -e
 
@@ -125,6 +129,12 @@ if ! gcloud kms keys describe "$KMS_KEY_ID" --keyring="$KMS_KEY_RING" --location
         --keyring="$KMS_KEY_RING" \
         --location="$KMS_LOCATION" \
         --purpose=encryption
+    
+    echo -e "${RED}🚨 CRITICAL WARNING:${NC}"
+    echo -e "${RED}   The KMS key '$KMS_KEY_ID' was just created.${NC}"
+    echo -e "${RED}   NEVER delete this key or all encrypted messages become unreadable!${NC}"
+    echo -e "${RED}   Read docs/KMS_KEY_PROTECTION.md for protection guidelines.${NC}"
+    echo ""
 else
     echo "KMS key already exists: $KMS_KEY_ID"
 fi

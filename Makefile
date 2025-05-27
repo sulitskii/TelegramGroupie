@@ -621,3 +621,20 @@ ci-simulate: ## Simulate complete CI pipeline locally
 	make quality-gate-ci
 	@echo ""
 	@echo "🎉 CI simulation PASSED! GitHub Actions will succeed."
+
+check-kms: ## Check KMS key health and accessibility
+	@echo "🔐 Checking KMS key health..."
+	@./scripts/check-kms-health.sh
+
+backup-kms: ## Backup KMS configuration and metadata
+	@echo "💾 Backing up KMS configuration..."
+	@./scripts/backup-kms-config.sh
+
+backup-kms-to-gcs: ## Backup KMS configuration to Google Cloud Storage (requires BACKUP_BUCKET env var)
+	@if [ -z "$(BACKUP_BUCKET)" ]; then \
+		echo "❌ Error: BACKUP_BUCKET environment variable is required"; \
+		echo "   Example: make backup-kms-to-gcs BACKUP_BUCKET=gs://my-backup-bucket"; \
+		exit 1; \
+	fi
+	@echo "💾 Backing up KMS configuration to $(BACKUP_BUCKET)..."
+	@./scripts/backup-kms-config.sh -b $(BACKUP_BUCKET)

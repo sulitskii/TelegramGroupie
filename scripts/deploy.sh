@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# TelegramGroupie Deployment Script
-# Builds and deploys the application to Google Cloud Run
+# 🚀 TelegramGroupie Deployment Script
+# Builds and deploys the TelegramGroupie application to Google Cloud Run
+#
+# ⚠️ CRITICAL KMS WARNING: This deployment depends on KMS encryption keys.
+# NEVER delete the KMS key or keyring - all encrypted messages will become unreadable!
+# Read docs/KMS_KEY_PROTECTION.md for critical information.
 
 set -e
 
@@ -199,6 +203,19 @@ echo ""
 # Build phase
 if [ "$DEPLOY_ONLY" = false ]; then
     echo -e "${YELLOW}🏗️  Building Docker image...${NC}"
+    
+    # Check KMS key health before deployment
+    echo -e "${YELLOW}🔐 Checking KMS key health...${NC}"
+    if [ -f "scripts/check-kms-health.sh" ]; then
+        if ! ./scripts/check-kms-health.sh -p "$PROJECT_ID"; then
+            echo -e "${RED}❌ KMS key health check failed. Aborting deployment.${NC}"
+            echo -e "${RED}   See docs/KMS_KEY_PROTECTION.md for recovery procedures.${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✅ KMS key is healthy and accessible${NC}"
+    else
+        echo -e "${YELLOW}⚠️  KMS health check script not found, skipping...${NC}"
+    fi
     
     # Run tests first
     echo "🧪 Running tests..."
