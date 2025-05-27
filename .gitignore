@@ -303,3 +303,15 @@ profile.svg
 
 # Pre-commit
 .pre-commit-config.yaml.backup
+
+# KMS Configuration Backups
+# ⚠️ CRITICAL: Never delete KMS keys! See docs/KMS_KEY_PROTECTION.md
+backups/kms-config/
+backups/last-backup.txt
+
+# Allow KMS protection documentation (critical for security)
+!docs/KMS_KEY_PROTECTION.md
+
+# Temporary backup files
+*.backup
+*.bak
