@@ -80,11 +80,7 @@ class TestDatabaseQuery:
 
     def _apply_filters(self, docs: list[DatabaseDocument]) -> list[DatabaseDocument]:
         """Apply filters to documents."""
-        filtered_docs = []
-        for doc in docs:
-            if self._document_matches_filters(doc):
-                filtered_docs.append(doc)
-        return filtered_docs
+        return [doc for doc in docs if self._document_matches_filters(doc)]
 
     def _document_matches_filters(self, doc: DatabaseDocument) -> bool:
         """Check if a document matches all filters."""
@@ -98,7 +94,7 @@ class TestDatabaseQuery:
         """Extract field and value from filter object."""
         if hasattr(filter_obj, "field") and hasattr(filter_obj, "value"):
             return filter_obj.field, filter_obj.value
-        elif isinstance(filter_obj, dict):
+        if isinstance(filter_obj, dict):
             return filter_obj.get("field"), filter_obj.get("value")
         return None, None
 
