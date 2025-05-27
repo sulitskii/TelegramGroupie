@@ -4,27 +4,27 @@
 # Replace @your-username with your actual GitHub username.
 
 # Global ownership - all files require review from repository owner
-* @your-username
+* @sulitskii
 
 # Infrastructure and deployment files require additional review
-/.github/ @your-username
-/docs/ @your-username
-/devops/scripts/ @your-username
-Dockerfile* @your-username
-docker-compose*.yml @your-username
-requirements*.txt @your-username
-Makefile @your-username
+/.github/ @sulitskii
+/docs/ @sulitskii
+/devops/scripts/ @sulitskii
+Dockerfile* @sulitskii
+docker-compose*.yml @sulitskii
+requirements*.txt @sulitskii
+Makefile @sulitskii
 
 # Core application files require careful review
-/encryption.py @your-username
-/src/core/service_container.py @your-username
-/src/implementations/production.py @your-username
+/encryption.py @sulitskii
+/src/core/service_container.py @sulitskii
+/src/implementations/production.py @sulitskii
 
 # Security-sensitive files require mandatory review
-/docs/KMS_KEY_PROTECTION.md @your-username
-/docs/BRANCH_PROTECTION_SETUP.md @your-username
-/docs/DEPLOYMENT_GUIDE.md @your-username
+/docs/KMS_KEY_PROTECTION.md @sulitskii
+/docs/BRANCH_PROTECTION_SETUP.md @sulitskii
+/docs/DEPLOYMENT_GUIDE.md @sulitskii
 
 # Configuration files
-*.env.example @your-username
-/configuration/ @your-username 
+*.env.example @sulitskii
+/configuration/ @sulitskii 
