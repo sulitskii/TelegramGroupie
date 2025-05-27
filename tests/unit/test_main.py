@@ -78,16 +78,17 @@ def test_webhook_valid_request(client, mock_telegram_update):
     """Test webhook endpoint with valid request."""
 
     # Mock the encryption and database operations
-    with patch("main.encryption") as mock_encryption, \
-         patch("main.db") as mock_db, \
-         patch("main.telegram_bot") as mock_bot:
-
+    with (
+        patch("main.encryption") as mock_encryption,
+        patch("main.db") as mock_db,
+        patch("main.telegram_bot") as mock_bot,
+    ):
         # Set up mocks
         mock_encryption.encrypt_message.return_value = {
             "ciphertext": "encrypted_test",
             "encrypted_data_key": "test_key",
             "iv": "test_iv",
-            "salt": "test_salt"
+            "salt": "test_salt",
         }
 
         mock_collection = Mock()
@@ -97,9 +98,10 @@ def test_webhook_valid_request(client, mock_telegram_update):
         mock_bot.send_message = AsyncMock()
 
         # Mock the TESTING_MODE to False so it processes the webhook
-        with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
-             patch("main.TESTING_MODE", False):
-
+        with (
+            patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}),
+            patch("main.TESTING_MODE", False),
+        ):
             response = client.post(
                 "/webhook/test-secret",
                 data=json.dumps(mock_telegram_update),
@@ -122,9 +124,10 @@ def test_webhook_invalid_secret(client, mock_telegram_update):
 
 def test_webhook_testing_mode(client, mock_telegram_update):
     """Test webhook endpoint in testing mode."""
-    with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
-         patch("main.TESTING_MODE", True):
-
+    with (
+        patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}),
+        patch("main.TESTING_MODE", True),
+    ):
         response = client.post(
             "/webhook/test-secret",
             data=json.dumps(mock_telegram_update),

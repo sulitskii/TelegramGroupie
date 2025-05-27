@@ -82,7 +82,7 @@ class TestDockerCore:
                     "id": 123456,
                     "first_name": "Test",
                     "last_name": "User",
-                    "username": "testuser"
+                    "username": "testuser",
                 },
                 "chat": {
                     "id": -100123456789,
@@ -109,8 +109,8 @@ class TestDockerCore:
             "callback_query": {
                 "id": "test",
                 "from": {"id": 123456, "first_name": "Test"},
-                "data": "test_data"
-            }
+                "data": "test_data",
+            },
         }
 
         response = requests.post(
@@ -136,7 +136,7 @@ class TestDockerCore:
         response = requests.get(
             f"{api_client}/messages",
             params={"chat_id": "-100123456789", "limit": 10},
-            timeout=10
+            timeout=10,
         )
         assert response.status_code == 200
         data = response.json()
@@ -146,17 +146,14 @@ class TestDockerCore:
         response = requests.get(
             f"{api_client}/messages",
             params={"user_id": "123456", "limit": 5},
-            timeout=10
+            timeout=10,
         )
         assert response.status_code == 200
         data = response.json()
         assert "messages" in data
 
         # Test POST /messages/batch endpoint
-        batch_payload = {
-            "chat_id": -100123456789,
-            "batch_size": 50
-        }
+        batch_payload = {"chat_id": -100123456789, "batch_size": 50}
         response = requests.post(
             f"{api_client}/messages/batch",
             json=batch_payload,
@@ -170,10 +167,7 @@ class TestDockerCore:
         assert isinstance(data["count"], int)
 
         # Test batch processing with user filter
-        user_batch_payload = {
-            "user_id": 123456,
-            "batch_size": 25
-        }
+        user_batch_payload = {"user_id": 123456, "batch_size": 25}
         response = requests.post(
             f"{api_client}/messages/batch",
             json=user_batch_payload,
