@@ -53,9 +53,7 @@ class ProductionServiceContainer(ServiceContainer):
 
         if missing_vars:
             msg = f"Missing required environment variables for production: {', '.join(missing_vars)}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     def get_database_client(self) -> DatabaseClient:
         if self._db_client is None:
@@ -202,7 +200,11 @@ def create_service_container(environment: str | None = None) -> ServiceContainer
     """
     if environment is None:
         # Determine environment from context
-        if os.environ.get("FLASK_ENV") == "testing" or os.environ.get("APP_ENV") == "test" or "pytest" in os.environ.get("_", ""):
+        if (
+            os.environ.get("FLASK_ENV") == "testing"
+            or os.environ.get("APP_ENV") == "test"
+            or "pytest" in os.environ.get("_", "")
+        ):
             environment = "test"
         else:
             environment = "production"
@@ -214,9 +216,7 @@ def create_service_container(environment: str | None = None) -> ServiceContainer
     if environment == "production":
         return ProductionServiceContainer()
     msg = f"Unknown environment: {environment}. Use 'test' or 'production'."
-    raise ValueError(
-        msg
-    )
+    raise ValueError(msg)
 
 
 # Global service container instance (initialized by the application)

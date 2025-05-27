@@ -7,7 +7,7 @@ as production services but use in-memory storage and simple logic for testing.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from interfaces import (
     DatabaseClient,
@@ -333,7 +333,9 @@ class TestTelegramMessage:
 class TestTelegramChat:
     """Test Telegram chat implementation."""
 
-    def __init__(self, chat_id: int, title: str | None = None, chat_type: str = "group"):
+    def __init__(
+        self, chat_id: int, title: str | None = None, chat_type: str = "group"
+    ):
         self.id = chat_id
         self.title = title
         self.type = chat_type
@@ -342,7 +344,9 @@ class TestTelegramChat:
 class TestTelegramUser:
     """Test Telegram user implementation."""
 
-    def __init__(self, user_id: int, username: str | None = None, first_name: str | None = None):
+    def __init__(
+        self, user_id: int, username: str | None = None, first_name: str | None = None
+    ):
         self.id = user_id
         self.username = username
         self.first_name = first_name
