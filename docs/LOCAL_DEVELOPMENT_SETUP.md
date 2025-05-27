@@ -1,7 +1,7 @@
 # Local Development Setup Guide
 
 ## Overview
-This guide ensures your local development environment matches GitHub CI, allowing you to catch issues locally before pushing.
+This guide ensures your local development environment matches GitHub CI, using the dependency injection architecture for consistent testing across all environments.
 
 ## 🚨 Critical Rule: Never Push Without Local Validation
 **Always run all checks locally before pushing to GitHub. If CI fails but local doesn't, your environment is misconfigured.**
@@ -44,18 +44,25 @@ ruff check . --fix
 ruff check .
 ```
 
-### ✅ Unit Tests
+### ✅ Unit Tests with Dependency Injection
 ```bash
+# Run unit tests (automatically detects test environment)
 python -m pytest tests/unit/ -v
+
+# Explicitly set test environment
+APP_ENV=test python -m pytest tests/unit/ -v
+
+# Run with coverage
+python -m pytest tests/unit/ --cov=. --cov-report=html
 ```
 
 ### ✅ Docker Integration Tests
 ```bash
-# Full Docker tests (matches GitHub CI)
-docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+# Full Docker tests with dependency injection (matches GitHub CI)
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
-# Fast mock tests (optional, for development)
-docker compose -f docker-compose.fast-test.yml up --build --abort-on-container-exit
+# Fast tests with injected mock services (for development)
+docker-compose -f docker-compose.fast-test.yml up --build --abort-on-container-exit
 ```
 
 ### ✅ Security & Quality
@@ -65,7 +72,6 @@ bandit -r . -f json -o bandit-report.json || echo "Review security issues"
 
 # Additional quality checks (optional)
 mypy .
-pylint main.py
 ```
 
 ## 3. Local Environment Configuration
@@ -81,24 +87,84 @@ which ruff         # Should point to venv/bin/ruff
 ### Environment Variables for Testing
 Create `.env.local` for local testing:
 ```bash
-TESTING=true
+# Dependency injection environment
+APP_ENV=test
 GCP_PROJECT_ID=test-project
 WEBHOOK_SECRET=test_webhook_secret_123
 TELEGRAM_TOKEN=test_token_123
+
+# Alternative (legacy support)
+FLASK_ENV=testing
 ```
 
-## 4. CI Synchronization
+### Manual Application Testing
+```bash
+# Start application with test services
+APP_ENV=test python main.py
+
+# Or with Flask development server
+APP_ENV=test flask run --debug
+
+# Test endpoints
+curl http://localhost:8080/healthz
+curl http://localhost:8080/messages
+```
+
+## 4. Dependency Injection Development
+
+### Understanding Service Injection
+
+The application automatically detects your environment and injects appropriate services:
+
+```python
+# Automatic detection during development
+from main import create_app
+
+# Test environment (uses mock services)
+app = create_app(environment="test")
+
+# Production environment (uses real GCP services)  
+app = create_app(environment="production")
+```
+
+### Verifying Service Injection
+
+```bash
+# Verify test services are injected
+python -c "
+from main import create_app
+app = create_app(environment='test')
+with app.app_context():
+    from flask import current_app
+    container = current_app.config['service_container']
+    print(f'Database: {type(container.get_database_client()).__name__}')
+    print(f'Encryption: {type(container.get_encryption_service()).__name__}')
+"
+```
+
+Expected output:
+```
+Database: TestDatabaseClient
+Encryption: TestEncryptionService
+```
+
+## 5. CI Synchronization
 
 ### Docker Compose Files
-- `docker-compose.test.yml` - Used by GitHub CI (comprehensive)
-- `docker-compose.fast-test.yml` - For fast local development
+- `docker-compose.test.yml` - Used by GitHub CI (comprehensive testing with APP_ENV=test)
+- `docker-compose.fast-test.yml` - For fast local development (uses injected mocks)
 
 ### GitHub CI Workflows Match Local Commands
 - **Ruff**: `ruff check . --output-format=github`
 - **Tests**: `pytest tests/unit/ -v`
-- **Docker**: `docker compose -f docker-compose.test.yml up --build`
+- **Docker**: `docker-compose -f docker-compose.test.yml up --build`
 
-## 5. Common Issues & Solutions
+### Environment Variables Consistency
+- **Local Development**: `APP_ENV=test`
+- **Docker Tests**: `APP_ENV=test` (in docker-compose.test.yml)
+- **GitHub CI**: Automatically detected by pytest
+
+## 6. Common Issues & Solutions
 
 ### Issue: "ruff: command not found"
 **Solution**: Virtual environment not activated or dev dependencies not installed
@@ -107,11 +173,23 @@ source venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
-### Issue: Docker tests fail with GCP credentials error
-**Solution**: Ensure `TESTING=true` in docker-compose.test.yml
+### Issue: Tests using production services instead of mocks
+**Solution**: Environment not properly detected
+```bash
+# Verify environment detection
+APP_ENV=test python -c "
+from service_container import create_service_container
+container = create_service_container()
+print(f'Container type: {type(container).__name__}')
+"
+# Should output: TestServiceContainer
+```
+
+### Issue: Docker tests fail with service connection errors
+**Solution**: Ensure APP_ENV=test is set in docker-compose.test.yml
 ```yaml
 environment:
-  - TESTING=true  # Use mock services
+  - APP_ENV=test  # Use injected test services
 ```
 
 ### Issue: Static analysis passes locally but fails in CI
@@ -122,7 +200,7 @@ ruff --version
 # Should match version in requirements-dev.txt
 ```
 
-## 6. Development Workflow
+## 7. Development Workflow
 
 1. **Pull latest changes**
    ```bash
@@ -141,22 +219,29 @@ ruff --version
    python -m pytest tests/unit/
    ```
 
-4. **Pre-push full validation**
+4. **Test locally with dependency injection**
+   ```bash
+   # Start local server with test services
+   APP_ENV=test python main.py
+   # Test your changes
+   ```
+
+5. **Pre-push full validation**
    ```bash
    # Run ALL checks
    ruff check .
    python -m pytest tests/unit/ -v
-   docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+   docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
    ```
 
-5. **Only push if ALL checks pass**
+6. **Only push if ALL checks pass**
    ```bash
    git add -A
    git commit -m "Your commit message"
    git push origin feature/your-feature-name
    ```
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 ### Reset Development Environment
 If your environment gets corrupted:
@@ -165,7 +250,7 @@ If your environment gets corrupted:
 rm -rf venv
 
 # Remove Docker containers and images
-docker compose -f docker-compose.test.yml down -v
+docker-compose -f docker-compose.test.yml down -v
 docker system prune -a
 
 # Start fresh
@@ -174,14 +259,31 @@ source venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
+### Debug Service Injection Issues
+```bash
+# Test environment detection
+APP_ENV=test python -c "
+from main import create_app
+app = create_app()
+print('Application created successfully with test services')
+"
+
+# Test specific service injection
+python -c "
+from implementations.test import TestDatabaseClient
+from implementations.production import ProductionDatabaseClient
+print('Import test successful')
+"
+```
+
 ### Debug CI Failures
 If CI fails but local passes:
 1. Check GitHub Actions logs for exact error
 2. Ensure exact same commands run locally
-3. Verify environment variables match
-4. Check file permissions and Docker setup
+3. Verify environment variables match (APP_ENV=test)
+4. Check Docker setup and container logs
 
-## 8. IDE Integration
+## 9. IDE Integration
 
 ### VS Code Settings
 Add to `.vscode/settings.json`:
@@ -191,26 +293,74 @@ Add to `.vscode/settings.json`:
     "python.linting.enabled": true,
     "python.linting.ruffEnabled": true,
     "python.formatting.provider": "black",
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.envFile": "${workspaceFolder}/.env.local"
 }
 ```
 
-## 9. Git Hooks (Optional)
-
-Set up pre-commit hooks:
+### Environment Variables in IDE
+Create `.env.local` for IDE integration:
 ```bash
-pre-commit install
+APP_ENV=test
+GCP_PROJECT_ID=test-project
+WEBHOOK_SECRET=test_webhook_secret_123
+TELEGRAM_TOKEN=test_token_123
 ```
 
-This will run checks automatically before each commit.
+## 10. Advanced Development
+
+### Testing Both Environments Locally
+
+```bash
+# Test with mock services (fast)
+APP_ENV=test python main.py
+
+# Test with real services (requires GCP credentials)
+unset APP_ENV
+export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
+python main.py
+```
+
+### Custom Service Implementations
+
+For advanced development, you can create custom service implementations:
+
+```python
+# Custom development service container
+from service_container import ServiceContainer
+from implementations.test import TestEncryptionService
+from implementations.production import ProductionDatabaseClient
+
+class DevServiceContainer(ServiceContainer):
+    def get_database_client(self):
+        return ProductionDatabaseClient()  # Real database
+    
+    def get_encryption_service(self):
+        return TestEncryptionService()  # Mock encryption
+```
+
+## 11. Performance Optimization
+
+### Fast Development Cycle
+```bash
+# Quick syntax and unit test check
+ruff check . && python -m pytest tests/unit/ -x
+
+# Skip slow tests during development
+python -m pytest tests/unit/ -m "not slow"
+
+# Run specific test files
+python -m pytest tests/unit/test_main.py -v
+```
 
 ---
 
 ## Summary
 Following this guide ensures:
-- ✅ Local environment matches CI exactly
+- ✅ Local environment matches CI exactly with dependency injection
+- ✅ Fast development cycle with injected test services
 - ✅ Issues are caught before pushing
 - ✅ No CI surprises or failures
-- ✅ Consistent development experience
+- ✅ Consistent development experience across all environments
 
-**Remember: If CI fails but local doesn't, fix your local environment, don't ignore the CI failure!** 
+**Remember: The dependency injection architecture ensures your tests validate the same code that runs in production, just with different service implementations injected!** 

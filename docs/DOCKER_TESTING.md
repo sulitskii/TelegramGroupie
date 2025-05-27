@@ -1,15 +1,15 @@
 # Docker Testing Guide
 
-This guide explains how to set up and run integration tests using Docker containers for the TelegramGroupie project.
+This guide explains how to set up and run integration tests using Docker containers for the TelegramGroupie project with dependency injection architecture.
 
 ## 🎯 **Overview**
 
-Docker-based integration testing provides:
+Docker-based integration testing with dependency injection provides:
 - **Isolated Environment**: Tests run in clean, reproducible containers
-- **Service Dependencies**: Automatic setup of Firestore emulator, Redis, PostgreSQL
-- **Network Testing**: Tests real service-to-service communication
+- **Service Injection**: Automatic injection of test implementations via APP_ENV=test
+- **Network Testing**: Tests realistic container-to-container communication
 - **CI/CD Ready**: Easy integration with automated pipelines
-- **Consistent Results**: Same environment across different machines
+- **Consistent Results**: Same environment across different machines with injected mocks
 
 ## 🛠️ **Prerequisites**
 
@@ -49,91 +49,99 @@ docker info
 
 ## 🚀 **Quick Start**
 
-### 1. Run All Integration Tests
+### 1. Run All Integration Tests with Dependency Injection
 ```bash
 # Using Make (recommended)
-make docker-test
+make test-docker
 
-# Or directly
-./scripts/run-docker-tests.sh
+# Or directly with docker-compose
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 ```
 
-### 2. Run Tests with Clean Environment
+### 2. Run Fast Tests with Injected Mocks
 ```bash
-# Clean up any previous containers and run fresh tests
-make docker-test-clean
-
-# Or directly
-./scripts/run-docker-tests.sh --clean
+# Fast test environment with mock services
+docker-compose -f docker-compose.fast-test.yml up --build --abort-on-container-exit
 ```
 
-### 3. Debug Mode (No Cleanup)
+### 3. Debug Mode (Keep Containers Running)
 ```bash
-# Keep containers running after tests for debugging
-make docker-test-debug
+# Start test environment for debugging
+docker-compose -f docker-compose.test.yml up --build
 
-# Or directly
-./scripts/run-docker-tests.sh --no-cleanup
+# In another terminal, check logs
+docker-compose -f docker-compose.test.yml logs app
+
+# Stop when done
+docker-compose -f docker-compose.test.yml down
 ```
 
 ## 📋 **Available Commands**
 
 ### Make Commands
 ```bash
-make docker-test           # Run integration tests in Docker
-make docker-test-clean     # Run tests with cleanup
-make docker-test-debug     # Run tests without cleanup (for debugging)
-make docker-test-up        # Start test environment only
-make docker-test-down      # Stop test environment
-make docker-test-logs      # View test logs
+make test-docker           # Run integration tests in Docker with dependency injection
+make test-unit            # Run unit tests with injected test services
+make test-all             # Run all tests (unit + docker)
 ```
 
-### Direct Script Usage
+### Direct Docker Commands
 ```bash
-./scripts/run-docker-tests.sh [OPTIONS]
+# Test environment with comprehensive service injection
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
-Options:
-  -h, --help     Show help message
-  -c, --clean    Clean up Docker resources before running
-  -v, --verbose  Verbose output
-  --no-cleanup   Don't cleanup after tests (for debugging)
+# Fast test environment with lightweight mocks
+docker-compose -f docker-compose.fast-test.yml up --build --abort-on-container-exit
+
+# Start environment for debugging
+docker-compose -f docker-compose.test.yml up --build
+
+# View logs
+docker-compose -f docker-compose.test.yml logs app
+
+# Stop environment
+docker-compose -f docker-compose.test.yml down
 ```
 
-## 🏗️ **Architecture**
+## 🏗️ **Dependency Injection Architecture**
 
-### Docker Services
+### Container Service Injection
 
-The Docker test environment includes:
+The Docker test environment automatically injects test services via environment variables:
 
 1. **Application Container** (`app`)
-   - Runs the main Flask application
-   - Uses Python 3.11
-   - Connected to all dependency services
+   - Environment: `APP_ENV=test`
+   - Automatically uses TestServiceContainer
+   - Injects: TestDatabaseClient, TestEncryptionService, TestTelegramBot
 
 2. **Test Runner Container** (`test-runner`)
-   - Specialized container for running tests
-   - Includes all testing dependencies
-   - Generates reports and coverage
+   - Makes HTTP requests to application container
+   - Tests realistic API workflows
+   - Validates responses from injected test services
 
-3. **Firestore Emulator** (`firestore-emulator`)
-   - Google Cloud Firestore emulator
-   - Provides local database for testing
-   - No authentication required
+### Service Implementations in Containers
 
-4. **Redis** (`redis`)
-   - For session storage and caching
-   - Optional service for extended testing
-
-5. **PostgreSQL** (`test-db`)
-   - Additional database for testing
-   - Optional service
+```
+DOCKER CONTAINER ENVIRONMENT
+┌─────────────────────────────────────────────────────────────────┐
+│ APP_ENV=test → TestServiceContainer                             │
+│                                                                 │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│ │ TestDatabase    │  │ TestEncryption  │  │ TestTelegram    │ │
+│ │ Client          │  │ Service         │  │ Bot             │ │
+│ │ • Dict storage  │  │ • Base64 mock   │  │ • Log messages  │ │
+│ │ • Fast startup  │  │ • Deterministic │  │ • No network    │ │
+│ │ • No network    │  │ • Test-friendly │  │ • Offline mode  │ │
+│ └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Network Configuration
 
 All services run in an isolated Docker network (`test-network`) which:
-- Allows services to communicate using service names
+- Allows container-to-container communication using service names
 - Provides network isolation from host
-- Enables testing of service discovery
+- Enables testing of service discovery with injected implementations
 
 ## 📊 **Test Reports**
 
@@ -162,46 +170,50 @@ cat test-results/junit.xml
 
 ## 🔧 **Configuration**
 
-### Environment Variables
+### Environment Variables for Dependency Injection
 
 The Docker test environment uses these environment variables:
 
 ```bash
-# Application Configuration
-FLASK_ENV=testing
-FLASK_DEBUG=False
-PORT=8080
-TESTING=true
-INTEGRATION_TEST_MODE=true
+# Dependency Injection Configuration
+APP_ENV=test                        # Triggers test service injection
+FLASK_ENV=testing                   # Flask testing mode
+FLASK_DEBUG=False                   # Disable debug in container
+PORT=8080                          # Application port
 
-# Database Configuration
-FIRESTORE_EMULATOR_HOST=firestore-emulator:8081
-GCP_PROJECT_ID=test-project
-
-# Security Configuration
+# Test Service Configuration
+GCP_PROJECT_ID=test-project        # Mock project ID
 WEBHOOK_SECRET=test_webhook_secret_123
+TELEGRAM_TOKEN=test_token_123      # Mock token
 
-# Test Configuration
-APP_URL=http://app:8080
+# Test Environment
+INTEGRATION_TEST_MODE=true
+APP_URL=http://app:8080           # Container-to-container URL
 ```
 
-### Customizing Configuration
+### Docker Compose Configuration
 
-To customize the test environment:
+#### Comprehensive Test Environment (`docker-compose.test.yml`)
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - APP_ENV=test  # Triggers TestServiceContainer injection
+      - GCP_PROJECT_ID=test-project
+      - WEBHOOK_SECRET=test_webhook_secret_123
+    # Application automatically injects test implementations
+```
 
-1. **Modify `docker-compose.test.yml`**:
-   ```yaml
-   services:
-     app:
-       environment:
-         - CUSTOM_VAR=value
-   ```
-
-2. **Update test configuration**:
-   ```python
-   # In tests/test_integration_docker.py
-   APP_URL = os.environ.get('APP_URL', 'http://app:8080')
-   ```
+#### Fast Test Environment (`docker-compose.fast-test.yml`)
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - APP_ENV=test  # Uses lightweight test implementations
+    # Optimized for speed with minimal overhead
+```
 
 ## 🐛 **Debugging**
 
@@ -219,7 +231,18 @@ open -a Docker
 sudo systemctl start docker
 ```
 
-#### 2. Port Conflicts
+#### 2. Service Injection Issues
+```bash
+# Verify test services are injected in container
+docker-compose -f docker-compose.test.yml exec app python -c "
+from flask import current_app
+container = current_app.config['service_container']
+print(f'Container type: {type(container).__name__}')
+print(f'Database: {type(container.get_database_client()).__name__}')
+"
+```
+
+#### 3. Port Conflicts
 ```bash
 # Check what's using port 8080
 lsof -i :8080
@@ -228,7 +251,7 @@ lsof -i :8080
 sudo kill -9 $(lsof -t -i:8080)
 ```
 
-#### 3. Container Build Failures
+#### 4. Container Build Failures
 ```bash
 # Clean Docker cache
 docker system prune -f
@@ -239,25 +262,29 @@ docker-compose -f docker-compose.test.yml build --no-cache
 
 ### Debugging Test Failures
 
-1. **Keep containers running**:
-   ```bash
-   ./scripts/run-docker-tests.sh --no-cleanup
-   ```
-
-2. **Inspect running containers**:
+1. **Inspect running containers**:
    ```bash
    docker-compose -f docker-compose.test.yml ps
    docker-compose -f docker-compose.test.yml logs app
    docker-compose -f docker-compose.test.yml logs test-runner
    ```
 
-3. **Access container shell**:
+2. **Access container shell**:
    ```bash
    docker-compose -f docker-compose.test.yml exec app bash
-   docker-compose -f docker-compose.test.yml exec test-runner bash
    ```
 
-4. **Test specific endpoints**:
+3. **Test service injection manually**:
+   ```bash
+   # From within app container
+   python -c "
+   from main import create_app
+   app = create_app(environment='test')
+   print('Test services injected successfully')
+   "
+   ```
+
+4. **Test endpoints directly**:
    ```bash
    # From within test-runner container
    curl http://app:8080/healthz
@@ -268,11 +295,10 @@ docker-compose -f docker-compose.test.yml build --no-cache
 
 ```bash
 # View all logs
-make docker-test-logs
+docker-compose -f docker-compose.test.yml logs
 
 # View specific service logs
 docker-compose -f docker-compose.test.yml logs -f app
-docker-compose -f docker-compose.test.yml logs -f firestore-emulator
 
 # Follow logs in real-time
 docker-compose -f docker-compose.test.yml logs -f --tail=100
@@ -282,7 +308,7 @@ docker-compose -f docker-compose.test.yml logs -f --tail=100
 
 ### GitHub Actions
 
-Add to `.github/workflows/docker-tests.yml`:
+The Docker tests integrate seamlessly with CI/CD:
 
 ```yaml
 name: Docker Integration Tests
@@ -299,10 +325,9 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Run Docker Integration Tests
+    - name: Run Docker Integration Tests with Dependency Injection
       run: |
-        chmod +x scripts/run-docker-tests.sh
-        ./scripts/run-docker-tests.sh --clean
+        docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v3
@@ -312,23 +337,19 @@ jobs:
         path: test-results/
 ```
 
-### Other CI Systems
+### Benefits of Dependency Injection in CI
 
-For other CI systems, use:
-```bash
-# Clean run for CI
-./scripts/run-docker-tests.sh --clean --verbose
-
-# Exit code indicates success/failure
-echo $?  # 0 = success, non-zero = failure
-```
+✅ **Fast Execution**: Mock services eliminate network latency
+✅ **Reliable Results**: No external dependencies or flaky services
+✅ **Identical Logic**: Tests validate same code that runs in production
+✅ **Deterministic**: Consistent results across all CI runs
 
 ## 🔒 **Security Considerations**
 
-1. **No Real Credentials**: Tests use mock credentials only
+1. **No Real Credentials**: Tests use injected mock services only
 2. **Isolated Network**: Containers run in isolated Docker network
 3. **Temporary Data**: All data is cleaned up after tests
-4. **No External Access**: Services don't expose ports to host by default
+4. **Mock Services**: No real GCP or Telegram API calls
 
 ## 📈 **Performance Tips**
 
@@ -336,25 +357,18 @@ echo $?  # 0 = success, non-zero = failure
    ```bash
    # Pre-build base images
    docker pull python:3.11-slim
-   docker pull gcr.io/google.com/cloudsdktool/cloud-sdk:latest
    ```
 
-2. **Parallel Testing**:
+2. **Optimize Test Execution**:
    ```bash
-   # Run tests in parallel (if supported)
-   pytest -n auto tests/test_integration_docker.py
+   # Use fast test environment for development
+   docker-compose -f docker-compose.fast-test.yml up --build
    ```
 
-3. **Resource Limits**:
-   ```yaml
-   # In docker-compose.test.yml
-   services:
-     app:
-       deploy:
-         resources:
-           limits:
-             memory: 512M
-             cpus: '0.5'
+3. **Parallel Testing**:
+   ```bash
+   # Tests run in parallel within container
+   pytest -n auto tests/docker/
    ```
 
 ## 📚 **Additional Resources**
@@ -362,14 +376,18 @@ echo $?  # 0 = success, non-zero = failure
 - [Docker Documentation](https://docs.docker.com/)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [pytest Documentation](https://docs.pytest.org/)
-- [Google Cloud Firestore Emulator](https://cloud.google.com/firestore/docs/emulator)
+- [TelegramGroupie Testing Guide](TESTING.md)
 
 ## 🆘 **Support**
 
 If you encounter issues:
 
 1. Check the [Common Issues](#common-issues) section
-2. Review container logs: `make docker-test-logs`
-3. Run in debug mode: `make docker-test-debug`
-4. Check Docker system status: `docker system df`
+2. Review container logs: `docker-compose -f docker-compose.test.yml logs`
+3. Verify service injection: Check that APP_ENV=test is set
+4. Test environment detection: Ensure TestServiceContainer is used
 5. Clean Docker system: `docker system prune -f`
+
+---
+
+This Docker testing guide provides comprehensive coverage of containerized testing with the **TelegramGroupie** dependency injection architecture. The system ensures fast, reliable testing while validating the exact same application logic that runs in production.

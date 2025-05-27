@@ -17,6 +17,7 @@
                                       ▼
     ┌─────────────────────────────────────────────────────────────────────┐
     │                         FLASK APPLICATION                           │
+    │                    (Dependency Injection)                           │
     │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐ │
     │  │   Webhook       │  │   Message       │  │   API Endpoints     │ │
     │  │   Handler       │  │   Processing    │  │   (/messages)       │ │
@@ -71,18 +72,12 @@
    │ Cloud KMS   │          │                                 │
    │             │          │ • Generate unique DEK          │
    │ • DEK       │ ────────▶│ • Encrypt message text          │
-   │ • Envelope  │          │ • Return encrypted data         │
+   │ • Envelope  │          │ • Return encrypted data:        │
    │   Encryption│          │   - ciphertext                  │
-   │   - encrypted_data_key          │
-   │   - initialization_vector       │
-   │   - salt                        │
-   │   - encrypted_data_key          │
-   │   - initialization_vector       │
-   │   - salt                        │
-   └─────────────┘          │   - encrypted_data_key          │
-                            │   - initialization_vector       │
-                            │   - salt                        │
-                            └─────────────────┬───────────────┘
+   │             │          │   - encrypted_data_key          │
+   │             │          │   - initialization_vector       │
+   │             │          │   - salt                        │
+   └─────────────┘          └─────────────────┬───────────────┘
                                               │
 4. STORAGE                                    ▼
    ┌─────────────┐          ┌─────────────────────────────────┐
@@ -112,31 +107,59 @@
    │             │          │ • Format for WhatsApp           │
    │             │          │ • Send to target groups         │
    │             │          │ • Handle delivery status        │
-   │             │          │ • Decrypt message               │
-   │             │          │ • Format for WhatsApp           │
-   │             │          │ • Send to target groups         │
-   │             │          │ • Handle delivery status        │
    └─────────────┘          └─────────────────────────────────┘
 ```
 
-## 🧪 **Testing Architecture**
+## 🧪 **Dependency Injection Architecture**
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              TESTING MODES                                 │
+│                         DEPENDENCY INJECTION SYSTEM                        │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-PRODUCTION MODE                          TESTING MODE
+APPLICATION FACTORY PATTERN
+┌─────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
+│      INTERFACES     │      │   SERVICE CONTAINER │      │  IMPLEMENTATIONS    │
+│                     │      │                     │      │                     │
+│ ┌─────────────────┐ │      │ ┌─────────────────┐ │      │ ┌─────────────────┐ │
+│ │ DatabaseClient  │ │◀────▶│ │  Environment    │ │────▶ │ │ Production/     │ │
+│ │ EncryptionSvc   │ │      │ │  Detection      │ │      │ │ Test Impls      │ │
+│ │ TelegramBot     │ │      │ │                 │ │      │ │                 │ │
+│ │ MessageHandler  │ │      │ │ • APP_ENV       │ │      │ │ • Production:   │ │
+│ └─────────────────┘ │      │ │ • FLASK_ENV     │ │      │ │   Real GCP      │ │
+└─────────────────────┘      │ │ • pytest       │ │      │ │ • Test:         │ │
+                             │ │   detection     │ │      │ │   Mocks         │ │
+                             │ └─────────────────┘ │      │ └─────────────────┘ │
+                             └─────────────────────┘      └─────────────────────┘
+
+ENVIRONMENT DETECTION LOGIC
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ def create_service_container(environment: str = None) -> ServiceContainer:   │
+│     if environment is None:                                                 │
+│         if os.environ.get("APP_ENV") == "test":                             │
+│             environment = "test"                                            │
+│         elif os.environ.get("FLASK_ENV") == "testing":                      │
+│             environment = "test"                                            │
+│         elif "pytest" in os.environ.get("_", ""):                          │
+│             environment = "test"                                            │
+│         else:                                                               │
+│             environment = "production"                                      │
+│                                                                             │
+│     return (TestServiceContainer() if environment == "test"                │
+│             else ProductionServiceContainer())                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PRODUCTION ENVIRONMENT                   TEST ENVIRONMENT
 ┌─────────────────────┐                 ┌─────────────────────┐
 │    REAL SERVICES    │                 │   MOCK SERVICES     │
 │                     │                 │                     │
 │ ┌─────────────────┐ │                 │ ┌─────────────────┐ │
-│ │ Google Cloud    │ │                 │ │ Mock Firestore  │ │
-│ │ Firestore       │ │                 │ │ Client          │ │
-│ │ • Real database │ │                 │ │ • In-memory     │ │
-│ │ • Network calls │ │ ────REPLACED──▶ │ │   storage       │ │
-│ │ • Authentication│ │     WITH        │ │ • No network    │ │
-│ │ • GCP billing   │ │                 │ │ • Fast startup  │ │
+│ │ Google Cloud    │ │                 │ │ In-Memory       │ │
+│ │ Firestore       │ │                 │ │ Database        │ │
+│ │ • Real database │ │ ────REPLACED──▶ │ │ • Dict storage  │ │
+│ │ • Network calls │ │     WITH        │ │ • No network    │ │
+│ │ • Authentication│ │                 │ │ • Fast startup  │ │
+│ │ • GCP billing   │ │                 │ │ • Test data     │ │
 │ └─────────────────┘ │                 │ └─────────────────┘ │
 │                     │                 │                     │
 │ ┌─────────────────┐ │                 │ ┌─────────────────┐ │
@@ -149,18 +172,19 @@ PRODUCTION MODE                          TESTING MODE
 │                     │                 │                     │
 │ ┌─────────────────┐ │                 │ ┌─────────────────┐ │
 │ │ Telegram Bot    │ │                 │ │ Mock Telegram   │ │
-│ │ • Real bot API  │ │                 │ │ App             │ │
-│ │ • Rate limits   │ │ ────REPLACED──▶ │ │ • No-op methods │ │
-│ │ • Network deps  │ │     WITH        │ │ • Test webhooks │ │
+│ │ • Real bot API  │ │                 │ │ Bot             │ │
+│ │ • Rate limits   │ │ ────REPLACED──▶ │ │ • Log messages  │ │
+│ │ • Network deps  │ │     WITH        │ │ • No-op methods │ │
 │ │ • Token required│ │                 │ │ • Offline tests │ │
 │ └─────────────────┘ │                 │ └─────────────────┘ │
 └─────────────────────┘                 └─────────────────────┘
 
-ENVIRONMENT DETECTION:
-if os.environ.get('TESTING') == 'true':
-    # Use mock implementations
-else:
-    # Use real Google Cloud services
+KEY BENEFITS:
+✅ Identical application logic in all environments
+✅ No conditional branches based on environment flags  
+✅ Clean separation of concerns
+✅ Easy testing with injected mocks
+✅ Production code contains zero testing logic
 ```
 
 ## 🐳 **Docker Testing Architecture**
@@ -176,8 +200,8 @@ CONTAINER ORCHESTRATION
 │                     │     │     CONTAINER       │     │                     │
 │ ┌─────────────────┐ │     │ ┌─────────────────┐ │     │ ┌─────────────────┐ │
 │ │ pytest          │ │     │ │ Flask App       │ │     │ │ JUnit XML       │ │
-│ │ HTTP requests   │ │     │ │ Mock services   │ │     │ │ HTML reports    │ │
-│ │ Integration     │ │     │ │ TESTING=true    │ │     │ │ Coverage data   │ │
+│ │ HTTP requests   │ │     │ │ Test services   │ │     │ │ HTML reports    │ │
+│ │ Integration     │ │     │ │ APP_ENV=test    │ │     │ │ Coverage data   │ │
 │ │ tests           │ │     │ │ Port 8080       │ │     │ │ Logs            │ │
 │ └─────────────────┘ │     │ └─────────────────┘ │     │ └─────────────────┘ │
 └─────────────────────┘     └─────────────────────┘     └─────────────────────┘
@@ -196,10 +220,10 @@ CONTAINER ORCHESTRATION
 
 TEST EXECUTION FLOW:
 1. docker-compose up --build
-2. Build application container with TESTING=true
+2. Build application container with APP_ENV=test
 3. Start test runner container
 4. Test runner makes HTTP requests to app container
-5. Application responds using mock services
+5. Application responds using injected mock services
 6. Test results written to shared volume
 7. Containers shut down automatically
 ```
@@ -492,6 +516,8 @@ ERROR HANDLING
 ---
 
 This comprehensive architecture documentation provides a detailed view of the system design, covering all major components, data flows, security considerations, and deployment strategies. The diagrams use ASCII art for universal compatibility and easy maintenance in version control.
+
+The architecture is built on solid dependency injection principles, ensuring clean separation between environments while maintaining identical application behavior across all deployments.
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            TELEGRAMGROUPIE                                  │
