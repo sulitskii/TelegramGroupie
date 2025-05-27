@@ -93,7 +93,7 @@ class TestDockerCore:
                 "text": "Hello, this is a test message",
             },
         }
-        
+
         response = requests.post(
             f"{api_client}/webhook/test_webhook_secret_123",
             json=webhook_payload,
@@ -112,7 +112,7 @@ class TestDockerCore:
                 "data": "test_data"
             }
         }
-        
+
         response = requests.post(
             f"{api_client}/webhook/test_webhook_secret_123",
             json=non_message_payload,
