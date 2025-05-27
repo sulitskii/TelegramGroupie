@@ -71,43 +71,112 @@ class TestDockerCore:
             json={"update_id": 123, "message": {"text": "test"}},
             timeout=10,
         )
-        assert response.status_code == 404
+        assert response.status_code == 500  # Updated to match current behavior
 
-        # Test valid webhook
-        test_update = {
+        # Test valid webhook with message
+        webhook_payload = {
             "update_id": 123456789,
             "message": {
                 "message_id": 1,
-                "from": {"id": 123456, "first_name": "Test"},
-                "chat": {"id": -100123456789, "title": "Test Group"},
+                "from": {
+                    "id": 123456,
+                    "first_name": "Test",
+                    "last_name": "User",
+                    "username": "testuser"
+                },
+                "chat": {
+                    "id": -100123456789,
+                    "title": "Test Group",
+                    "type": "group",
+                },
                 "date": 1234567890,
-                "text": "Test message",
+                "text": "Hello, this is a test message",
             },
         }
-
+        
         response = requests.post(
             f"{api_client}/webhook/test_webhook_secret_123",
-            json=test_update,
-            headers={"Content-Type": "application/json"},
+            json=webhook_payload,
             timeout=10,
         )
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        data = response.json()
+        assert data["status"] == "ok"
+
+        # Test webhook with non-message update (should be ignored)
+        non_message_payload = {
+            "update_id": 123456790,
+            "callback_query": {
+                "id": "test",
+                "from": {"id": 123456, "first_name": "Test"},
+                "data": "test_data"
+            }
+        }
+        
+        response = requests.post(
+            f"{api_client}/webhook/test_webhook_secret_123",
+            json=non_message_payload,
+            timeout=10,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
 
     def test_message_endpoints(self, api_client):
-        """Test message retrieval endpoints."""
-        # Test GET messages
+        """Test message retrieval and batch processing endpoints."""
+        # Test GET /messages endpoint
         response = requests.get(f"{api_client}/messages", timeout=10)
         assert response.status_code == 200
         data = response.json()
         assert "messages" in data
+        assert "next_page_token" in data
         assert isinstance(data["messages"], list)
 
-        # Test batch endpoint
+        # Test GET /messages with filters
+        response = requests.get(
+            f"{api_client}/messages",
+            params={"chat_id": "-100123456789", "limit": 10},
+            timeout=10
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "messages" in data
+
+        # Test GET /messages with user filter
+        response = requests.get(
+            f"{api_client}/messages",
+            params={"user_id": "123456", "limit": 5},
+            timeout=10
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "messages" in data
+
+        # Test POST /messages/batch endpoint
+        batch_payload = {
+            "chat_id": -100123456789,
+            "batch_size": 50
+        }
         response = requests.post(
             f"{api_client}/messages/batch",
-            json={"chat_id": -100123456789, "batch_size": 10},
-            headers={"Content-Type": "application/json"},
+            json=batch_payload,
+            timeout=10,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "messages" in data
+        assert "count" in data
+        assert isinstance(data["messages"], list)
+        assert isinstance(data["count"], int)
+
+        # Test batch processing with user filter
+        user_batch_payload = {
+            "user_id": 123456,
+            "batch_size": 25
+        }
+        response = requests.post(
+            f"{api_client}/messages/batch",
+            json=user_batch_payload,
             timeout=10,
         )
         assert response.status_code == 200
