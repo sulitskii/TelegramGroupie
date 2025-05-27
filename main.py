@@ -12,7 +12,7 @@ app = Flask(__name__)
 # Set up logging first
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -26,16 +26,16 @@ if TESTING_MODE:
     logger.info("🧪 TESTING MODE: Using mock services")
     # Use mock implementations for testing
     try:
-        from mock_firestore import MockFirestoreClient
         from mock_encryption import MockMessageEncryption
-        
+        from mock_firestore import MockFirestoreClient
+
         logger.info("📦 Using mock services for testing")
-        
+
         # Initialize mock Firestore client
         logger.info("🔥 Initializing mock Firestore client...")
         db = MockFirestoreClient()
         logger.info("✅ Mock Firestore client initialized successfully")
-        
+
         # Initialize mock encryption
         encryption = MockMessageEncryption(
             project_id="test-project",
@@ -44,10 +44,10 @@ if TESTING_MODE:
             key_id="test-key-id",
         )
         logger.info("✅ Mock encryption service initialized successfully")
-        
+
         # Mock FieldFilter for testing
         from mock_firestore import MockFieldFilter as FieldFilter
-        
+
     except Exception as e:
         logger.exception(f"❌ Failed to initialize mock services: {e}")
         raise
@@ -57,6 +57,7 @@ else:
         # Always use real implementations in production
         from google.cloud import firestore
         from google.cloud.firestore_v1.base_query import FieldFilter
+
         from encryption import MessageEncryption
 
         logger.info("📦 Imported Google Cloud services")
@@ -102,7 +103,7 @@ else:
         async def send_message(self, chat_id, text, parse_mode=None):
             logger.info(f"🧪 Mock: Would send message to {chat_id}: {text}")
             return {"message_id": 999, "chat": {"id": chat_id}}
-    
+
     telegram_bot = MockTelegramBot()
     logger.info("🧪 Mock Telegram Bot initialized for testing")
 
@@ -148,14 +149,12 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Store in Firestore
         messages_ref = db.collection("messages")
-        doc_ref = messages_ref.add(message_data)
+        messages_ref.add(message_data)
 
-        logging.info(
-            f"Stored encrypted message {message.message_id} from chat {chat.title}"
-        )
+        logger.info(f"💾 Stored encrypted message {message.message_id} to Firestore")
 
         # Return stored document reference for further processing
-        return doc_ref[1]  # doc_ref is a tuple (timestamp, document_reference)
+        return message_data["message_id"]
 
     except Exception as e:
         logging.exception(f"Error processing message: {e!s}")
@@ -199,12 +198,12 @@ async def send_message_response(update: Update, context: ContextTypes.DEFAULT_TY
 async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages: store to Firestore and send response."""
     # Store the message
-    doc_ref = await process_message(update, context)
-    
+    message_id = await process_message(update, context)
+
     # Send response back to chat
     await send_message_response(update, context)
-    
-    return doc_ref
+
+    return message_id
 
 
 # Telegram handler for all messages (groups and private)
@@ -234,20 +233,20 @@ def webhook(secret):
         # Parse the incoming update
         update_data = request.get_json(force=True)
         logger.info(f"📨 Received webhook update: {update_data.get('update_id', 'unknown')}")
-        
+
         if TESTING_MODE:
             # Mock webhook processing for testing
             logger.info("🧪 Mock webhook processing in testing mode")
             return jsonify({"status": "ok"})
-        
+
         # Parse the Telegram update
         update = Update.de_json(update_data, telegram_bot)
-        
+
         # Only process message updates
         if not update.message:
             logger.info("⏭️ Skipping non-message update")
             return jsonify({"status": "ok"})
-        
+
         # Process the message asynchronously
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -257,9 +256,9 @@ def webhook(secret):
             logger.info(f"✅ Successfully processed message {update.message.message_id}")
         finally:
             loop.close()
-        
+
         return jsonify({"status": "ok"})
-        
+
     except Exception as e:
         logger.exception(f"❌ Error in webhook processing: {e}")
         return jsonify({"error": "Internal server error"}), 500
@@ -271,13 +270,13 @@ async def handle_telegram_message(update: Update):
         message = update.message
         chat = message.chat
         user = message.from_user
-        
+
         logger.info(f"🔄 Processing message {message.message_id} from user {user.id} in chat {chat.id}")
-        
+
         # 1. Encrypt and store the message
         if message.text:
             encrypted_data = encryption.encrypt_message(message.text)
-            
+
             # Create message document
             message_data = {
                 "message_id": message.message_id,
@@ -290,35 +289,35 @@ async def handle_telegram_message(update: Update):
                 "timestamp": datetime.utcnow(),
                 "type": "telegram",
             }
-            
+
             # Store in Firestore
             messages_ref = db.collection("messages")
-            doc_ref = messages_ref.add(message_data)
-            
+            messages_ref.add(message_data)
+
             logger.info(f"💾 Stored encrypted message {message.message_id} to Firestore")
-        
+
         # 2. Send response back to chat
         # Determine user display name
         user_display = user.username if user.username else user.first_name
-        
+
         # Determine chat type and name
         if chat.type == "private":
             chat_display = "private chat"
         else:
             chat_display = chat.title or f"group chat {chat.id}"
-        
+
         # Create response message
         response_text = f"I received message from *{user_display}*, in the chat *{chat_display}*, message id #{message.message_id}"
-        
+
         # Send response back to the chat
         await telegram_bot.send_message(
             chat_id=chat.id,
             text=response_text,
             parse_mode="Markdown"
         )
-        
+
         logger.info(f"📤 Sent response for message {message.message_id} in chat {chat.id}")
-        
+
     except Exception as e:
         logger.exception(f"❌ Error handling Telegram message: {e}")
         raise
