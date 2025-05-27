@@ -186,16 +186,17 @@ class TestDockerReliability:
     def test_concurrent_requests(self, api_client):
         """Test concurrent request handling."""
 
-        def make_request():
+        def wait_for_health_check():
+            """Wait for the service to become healthy."""
             try:
                 response = requests.get(f"{api_client}/healthz", timeout=10)
                 return response.status_code == 200
-            except:
+            except Exception:
                 return False
 
         # Make 5 concurrent requests (lightweight test)
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(make_request) for _ in range(5)]
+            futures = [executor.submit(wait_for_health_check) for _ in range(5)]
             results = [
                 future.result() for future in concurrent.futures.as_completed(futures)
             ]

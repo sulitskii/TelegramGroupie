@@ -292,7 +292,7 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 pytest tests/ -v -s
 
 # Check dependency injection
-python -c "from service_container import create_service_container; print('OK')"
+python -c "from src.core.service_container import create_service_container; print('OK')"
 ```
 
 #### 4. Environment Variable Issues

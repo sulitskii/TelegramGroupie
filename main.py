@@ -17,7 +17,7 @@ import os
 
 from flask import Flask, abort, jsonify, request
 
-from service_container import initialize_service_container
+from src.core.service_container import initialize_service_container
 
 # Set up logging
 logging.basicConfig(

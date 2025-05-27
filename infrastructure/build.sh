@@ -40,8 +40,8 @@ while [[ $# -gt 0 ]]; do
             echo "  3. Run comprehensive tests"
             echo "  4. Build and deploy to Google Cloud Run"
             echo ""
-            echo "For new project setup, run: ./scripts/setup-gcp-project.sh"
-            echo "For advanced deployment options, run: ./scripts/deploy.sh"
+            echo "For new project setup, run: ./devops/scripts/setup-gcp-project.sh"
+            echo "For advanced deployment options, run: ./devops/scripts/deploy.sh"
             exit 0
             ;;
         *) echo "Unknown option: $1"; echo "Use -h for help"; exit 1 ;;
@@ -64,11 +64,11 @@ pip install --upgrade pip
 
 # Install or upgrade dependencies
 echo -e "${YELLOW}📦 Installing/upgrading dependencies...${NC}"
-pip install -r requirements.txt
+pip install -r infrastructure/requirements/requirements.txt
 
 # Install dev dependencies for testing
-if [ -f "requirements-dev.txt" ]; then
-    pip install -r requirements-dev.txt
+if [ -f "infrastructure/requirements/requirements-dev.txt" ]; then
+    pip install -r infrastructure/requirements/requirements-dev.txt
 fi
 
 # Verify Flask is installed
@@ -79,7 +79,7 @@ fi
 
 # Verify dependency injection architecture
 echo -e "${YELLOW}🔍 Verifying dependency injection architecture...${NC}"
-if ! python -c "from service_container import create_service_container; print('✅ Service container working')" &> /dev/null; then
+if ! python -c "from src.core.service_container import create_service_container; print('✅ Service container working')" &> /dev/null; then
     echo -e "${RED}❌ Dependency injection architecture verification failed${NC}"
     exit 1
 fi
@@ -97,8 +97,8 @@ fi
 # Check if Docker is available for integration tests
 if command -v docker &> /dev/null; then
     echo "Running Docker integration tests..."
-    if [ -f "scripts/run-basic-docker-test.sh" ]; then
-        bash scripts/run-basic-docker-test.sh || echo -e "${YELLOW}⚠️  Docker tests failed but continuing...${NC}"
+    if [ -f "devops/scripts/run-basic-docker-test.sh" ]; then
+        bash devops/scripts/run-basic-docker-test.sh || echo -e "${YELLOW}⚠️  Docker tests failed but continuing...${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  Docker not available, skipping Docker tests${NC}"
@@ -123,16 +123,16 @@ echo -e "${BLUE}📋 Using project: ${PROJECT_ID}${NC}"
 echo -e "${BLUE}📋 Environment: ${ENVIRONMENT}${NC}"
 
 # Check if environment configuration exists
-ENV_FILE="${ENVIRONMENT}.env"
+ENV_FILE="configuration/${ENVIRONMENT}.env"
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${YELLOW}⚠️  Environment configuration not found: ${ENV_FILE}${NC}"
     echo "To set up infrastructure, run:"
-    echo "  ./scripts/setup-gcp-project.sh -p $PROJECT_ID -e $ENVIRONMENT"
+    echo "  ./devops/scripts/setup-gcp-project.sh -p $PROJECT_ID -e $ENVIRONMENT"
     echo ""
     echo "Or to deploy with manual configuration:"
     echo "  export TELEGRAM_TOKEN='your-bot-token'"
     echo "  export WEBHOOK_SECRET='your-webhook-secret'"
-    echo "  ./scripts/deploy.sh -p $PROJECT_ID -e $ENVIRONMENT -t \$TELEGRAM_TOKEN -s \$WEBHOOK_SECRET"
+    echo "  ./devops/scripts/deploy.sh -p $PROJECT_ID -e $ENVIRONMENT -t \$TELEGRAM_TOKEN -s \$WEBHOOK_SECRET"
     exit 1
 fi
 
@@ -158,10 +158,10 @@ fi
 # Use the new deployment script
 if [ "$BUILD_ONLY" = true ]; then
     echo -e "${YELLOW}🏗️  Building Docker image only...${NC}"
-    ./scripts/deploy.sh -p "$PROJECT_ID" -e "$ENVIRONMENT" --build-only
+    ./devops/scripts/deploy.sh -p "$PROJECT_ID" -e "$ENVIRONMENT" --build-only
 else
     echo -e "${YELLOW}🚀 Building and deploying...${NC}"
-    ./scripts/deploy.sh -p "$PROJECT_ID" -e "$ENVIRONMENT" -t "$TELEGRAM_TOKEN" -s "$WEBHOOK_SECRET"
+    ./devops/scripts/deploy.sh -p "$PROJECT_ID" -e "$ENVIRONMENT" -t "$TELEGRAM_TOKEN" -s "$WEBHOOK_SECRET"
 fi
 
 echo -e "${GREEN}✅ Build process completed successfully!${NC}"

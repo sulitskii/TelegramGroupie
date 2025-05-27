@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements first for better layer caching
-COPY requirements.txt ./
+COPY infrastructure/requirements/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY main.py interfaces.py service_container.py encryption.py ./
-COPY implementations/ ./implementations/
+COPY main.py interfaces.py encryption.py ./
+COPY src/ ./src/
 
 # Set environment variables
 ENV PORT=8080
