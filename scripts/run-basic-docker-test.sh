@@ -30,7 +30,7 @@ echo "🚀 Starting container..."
 docker run -d \
     --name $CONTAINER_NAME \
     -p $TEST_PORT:8080 \
-    -e TESTING=true \
+    -e APP_ENV=test \
     -e GCP_PROJECT_ID=test-project \
     -e WEBHOOK_SECRET=test-secret \
     $IMAGE_NAME

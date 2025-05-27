@@ -129,7 +129,7 @@ run_docker_fast_tests() {
     local container_id
     container_id=$(docker run -d \
         -p 8082:8080 \
-        -e TESTING=true \
+        -e APP_ENV=test \
         -e GCP_PROJECT_ID=test-project \
         -e WEBHOOK_SECRET=test_webhook_secret_123 \
         --name telegramgroupie-fast-test \

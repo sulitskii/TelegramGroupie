@@ -13,7 +13,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY main.py interfaces.py service_container.py ./
+COPY main.py interfaces.py service_container.py encryption.py ./
 COPY implementations/ ./implementations/
 
 # Set environment variables

@@ -11,6 +11,7 @@ from typing import Any
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from telegram import Bot, Update
+from telegram.request import HTTPXRequest
 
 from encryption import MessageEncryption
 from interfaces import (
@@ -153,12 +154,24 @@ class ProductionEncryptionService(EncryptionService):
 
 
 class ProductionTelegramBot(TelegramBot):
-    """Production Telegram bot implementation."""
+    """Production Telegram bot implementation with optimized connection pool."""
 
     def __init__(self, token: str):
         logger.info("🤖 Initializing production Telegram bot...")
-        self._bot = Bot(token=token)
-        logger.info("✅ Production Telegram bot initialized successfully")
+
+        # Configure HTTPXRequest with larger connection pool for production
+        request = HTTPXRequest(
+            connection_pool_size=20,  # Increase from default 1 to handle concurrent requests
+            connect_timeout=20.0,  # Increase connection timeout
+            read_timeout=30.0,  # Increase read timeout
+            pool_timeout=10.0,  # Increase pool timeout from default 1.0
+            write_timeout=30.0,  # Increase write timeout
+        )
+
+        self._bot = Bot(token=token, request=request)
+        logger.info(
+            "✅ Production Telegram bot initialized successfully with optimized connection pool"
+        )
 
     async def send_message(
         self, chat_id: int, text: str, parse_mode: str | None = None

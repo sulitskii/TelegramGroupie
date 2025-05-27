@@ -91,13 +91,14 @@ class ProductionServiceContainer(ServiceContainer):
 
     def get_telegram_update_parser(self) -> TelegramUpdateParser:
         if self._telegram_update_parser is None:
-            from telegram import Bot
-
             from implementations.production import ProductionTelegramUpdateParser
 
-            token = os.environ.get("TELEGRAM_TOKEN")
-            bot = Bot(token=token)
-            self._telegram_update_parser = ProductionTelegramUpdateParser(bot)
+            # Reuse the same optimized bot instance from ProductionTelegramBot
+            # This ensures connection pool sharing between sending and parsing
+            telegram_bot = self.get_telegram_bot()
+            self._telegram_update_parser = ProductionTelegramUpdateParser(
+                telegram_bot._bot
+            )
         return self._telegram_update_parser
 
     def get_field_filter_factory(self) -> FieldFilterFactory:

@@ -1,8 +1,6 @@
 # TelegramGroupie 🚀
 
-<!-- Workflow updated: CodeQL removed for streamlined CI/CD -->
-
-A smart, cloud-native Flask application for Telegram group management and message bridging, with end-to-end encryption and cloud storage.
+A smart, cloud-native Flask application for Telegram group management and message bridging, built with clean dependency injection architecture, end-to-end encryption, and cloud storage.
 
 ## 🔥 **Architecture Overview**
 
@@ -10,6 +8,7 @@ A smart, cloud-native Flask application for Telegram group management and messag
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                              TELEGRAMGROUPIE                               │
 │                      Smart Telegram Group Management                       │
+│                       (Dependency Injection Architecture)                  │
 └────────────────────────────────────────────────────────────────────────────┘
 ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐    ┌─────────────┐
 │  Telegram   │───▶│    Flask    │───▶│   Google Cloud  │───▶│ Destinations│
@@ -19,28 +18,30 @@ A smart, cloud-native Flask application for Telegram group management and messag
                           │                      │
                           ▼                      ▼
                    ┌─────────────┐    ┌─────────────────┐
-                   │   Docker    │    │   Encrypted     │
-                   │ Integration │    │   Message       │
-                   │   Testing   │    │   Storage       │
+                   │ Test Service│    │   Encrypted     │
+                   │ Injection   │    │   Message       │
+                   │ (Automatic) │    │   Storage       │
                    └─────────────┘    └─────────────────┘
 ```
 
 ## 🚀 **Features**
 
+- **🏗️ Clean Architecture**: Dependency injection with zero conditional logic
 - **🔐 End-to-End Encryption**: Google Cloud KMS for secure message encryption
 - **📱 Telegram Integration**: Captures group messages via webhook
 - **☁️ Cloud Storage**: Google Cloud Firestore for scalable data persistence
-- **🧪 Mock Testing**: Complete testing infrastructure without external dependencies
-- **🐳 Docker Ready**: Full containerization with integration testing
+- **🧪 Test Service Injection**: Automatic mock service injection for testing
+- **🐳 Docker Ready**: Full containerization with dependency injection
 - **⚡ Real-time Processing**: Async message handling with batch processing
 - **🔍 Message Retrieval**: REST API for accessing historical messages
 
 ## 🛠️ **Technology Stack**
 
 - **Backend**: Python 3.11, Flask 3.0.3
+- **Architecture**: Dependency Injection with Service Container pattern
 - **Telegram**: python-telegram-bot 21.11.1
 - **Cloud**: Google Cloud Firestore, Google Cloud KMS
-- **Testing**: pytest, Docker integration tests
+- **Testing**: pytest, Docker integration tests with injected test services
 - **Security**: Encrypted message storage, webhook secret validation
 - **DevOps**: Docker, GitHub Actions CI/CD
 
@@ -66,56 +67,58 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements-dev.txt  # For development
 
-# Run in testing mode (no Google Cloud required)
-TESTING=true python main.py
+# Run with test services (no Google Cloud required)
+APP_ENV=test python main.py
 ```
 
-## 🧪 **Testing**
+## 🧪 **Testing with Dependency Injection**
+
+### **Automatic Test Service Injection**
+The application uses clean dependency injection - tests automatically use mock services while production uses real GCP services:
+
+```python
+# Same application code in all environments
+from main import create_app
+
+# Test environment (automatic mock injection)
+app = create_app(environment="test")
+
+# Production environment (automatic real service injection)
+app = create_app(environment="production")
+```
 
 ### **Local Testing**
 ```bash
-# Run all unit tests
-make test
+# Run all unit tests (auto-detects test environment)
+make test-unit
 
 # Run with coverage
 make test-coverage
 
-# Run specific test file
-python -m pytest tests/test_main.py -v
-```
+# Run Docker tests with injected test services
+make test-docker
 
-### **Docker Integration Testing**
-```bash
-# ⚡ Ultra-fast Docker tests (6-8 seconds)
-bash scripts/run-tests.sh --docker-fast
-
-# 🐳 Full Docker Compose tests (20-25 seconds)  
-bash scripts/run-tests.sh --docker
-
-# 🧪 Unit tests only (1-2 seconds)
-bash scripts/run-tests.sh
-
-# 🔧 All options
-bash scripts/run-tests.sh --help
+# Run all tests
+make test-all
 ```
 
 ### **Test Architecture**
-The project uses a **dual-mode testing approach**:
+The project uses **clean dependency injection**:
 
-1. **Production Mode**: Uses real Google Cloud Firestore and KMS
-2. **Testing Mode** (`TESTING=true`): Uses mock implementations
+✅ **No conditional logic** - Application code is identical in all environments
+✅ **Automatic service injection** - Test services injected via APP_ENV=test
+✅ **Production validation** - Tests validate the same code that runs in production
+✅ **Fast execution** - Mock services eliminate network latency
 
-Mock implementations provide:
-- ✅ **No external dependencies** - runs anywhere
-- ✅ **Fast startup** - 1 second vs 30+ seconds
-- ✅ **Reliable tests** - no network or authentication issues
-- ✅ **Realistic data** - proper encrypted message simulation
+**Service Implementations:**
+- **Production**: Real Google Cloud Firestore, KMS, Telegram Bot API
+- **Test**: In-memory storage, Base64 encryption, message logging
 
 ## 🔧 **Configuration**
 
 ### **Environment Variables**
 
-#### **Production**
+#### **Production (Automatic Detection)**
 ```bash
 # Required for production
 TELEGRAM_TOKEN=your_bot_token
@@ -129,10 +132,13 @@ KMS_KEY_ID=message-key
 PORT=8080
 ```
 
-#### **Testing**
+#### **Testing (Automatic Service Injection)**
 ```bash
-# Enable testing mode
-TESTING=true
+# Trigger test service injection
+APP_ENV=test
+
+# Or alternative (legacy support)
+FLASK_ENV=testing
 
 # Optional test configuration
 GCP_PROJECT_ID=test-project
@@ -140,21 +146,12 @@ WEBHOOK_SECRET=test-secret
 PORT=8080
 ```
 
-### **Google Cloud Setup** (Production Only)
-
-1. **Create Google Cloud Project**
-2. **Enable APIs**:
-   - Cloud Firestore API
-   - Cloud KMS API
-3. **Create KMS Key Ring and Key**:
-   ```bash
-   gcloud kms keyrings create telegram-messages --location=global
-   gcloud kms keys create message-key \
-     --location=global \
-     --keyring=telegram-messages \
-     --purpose=encryption
-   ```
-4. **Set up Application Default Credentials**
+#### **Environment Detection**
+The application automatically detects the environment:
+- `APP_ENV=test` → Test services injected
+- `FLASK_ENV=testing` → Test services injected
+- `pytest` execution → Test services injected (automatic)
+- Default → Production services used
 
 ## 🌐 **API Endpoints**
 
@@ -191,56 +188,62 @@ Content-Type: application/json
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Code      │───▶│   Build &   │───▶│    Test     │───▶│   Deploy    │
 │   Commit    │    │   Install   │    │   Suite     │    │     to      │
-│             │    │             │    │             │    │   Cloud     │
+│             │    │             │    │ (Dependency │    │   Cloud     │
+│             │    │             │    │ Injection)  │    │             │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
        │                   │                   │                   │
        ▼                   ▼                   ▼                   ▼
  • Git Push         • Python 3.11      • Unit Tests       • Google Cloud
- • PR Creation      • Dependencies      • Integration      • Docker Deploy
- • Branch Update    • Lint & Format     • Docker Tests     • Health Checks
+ • PR Creation      • Dependencies      • Docker Tests     • Docker Deploy
+ • Branch Update    • Lint & Format     • Injected Mocks   • Health Checks
 ```
 
 ### **GitHub Actions Workflow**
 - ✅ **Python 3.11** compatibility testing
 - ✅ **Dependency** installation and validation
-- ✅ **Code quality** checks (flake8, black)
-- ✅ **Unit tests** with coverage reporting
-- ✅ **Integration tests** with mock implementations
-- ✅ **Docker builds** and container testing
+- ✅ **Code quality** checks (ruff, static analysis)
+- ✅ **Unit tests** with dependency injection
+- ✅ **Docker tests** with automatic test service injection
 - ✅ **Security scanning** and vulnerability checks
 
 ## 📁 **Project Structure**
 
 ```
 TelegramGroupie/
-├── 📄 main.py                     # Main Flask application
-├── 🔐 encryption.py               # Google Cloud KMS encryption
-├── 🧪 mock_firestore.py           # Mock Firestore for testing
-├── 🧪 mock_encryption.py          # Mock encryption for testing
-├── 📦 requirements.txt            # Production dependencies
-├── 📦 requirements-dev.txt        # Development dependencies
-├── 🐳 Dockerfile                  # Production container
-├── 🐳 Dockerfile.test             # Testing container
-├── 🐳 docker-compose.minimal.yml  # Minimal Docker testing
-├── 🐳 docker-compose.simple.yml   # Simple Docker testing
-├── 🔧 Makefile                    # Build and test commands
-├── ⚙️ pytest.ini                  # Test configuration
-├── 📚 README.md                   # This file
-├── 🔒 SECURITY.md                 # Security guidelines
-├── 📋 build.sh                    # Build script
-├── tests/                         # Test suite
-│   ├── test_main.py              # Flask app tests
-│   ├── test_encryption.py        # Encryption tests
-│   ├── test_integration.py       # Local integration tests
-│   ├── test_integration_docker.py # Docker integration tests
-│   ├── test_message_retrieval.py # Message API tests
-│   └── test_all.py               # Comprehensive test suite
-├── scripts/                       # Utility scripts
-│   └── run-basic-docker-test.sh  # Quick Docker test
+├── 📄 main.py                     # Main Flask app (zero conditional logic)
+├── 🏗️ service_container.py       # Dependency injection container
+├── 🔌 interfaces.py              # Service interface definitions
+├── 📁 implementations/           # Service implementations
+│   ├── production.py            # Real GCP services
+│   └── test.py                  # Mock implementations
+├── 🔐 encryption.py              # Production encryption utilities
+├── 📦 requirements.txt           # Production dependencies
+├── 📦 requirements-dev.txt       # Development dependencies
+├── 🐳 Dockerfile                 # Production container
+├── 🐳 Dockerfile.test            # Testing container
+├── 🐳 docker-compose.test.yml    # Docker testing with dependency injection
+├── 🐳 docker-compose.fast-test.yml # Fast Docker testing
+├── 🔧 Makefile                   # Build and test commands
+├── 📚 README.md                  # This file
+├── 🔒 SECURITY.md                # Security guidelines
+├── 📋 build.sh                   # Build script
+├── tests/                        # Test suite
+│   ├── unit/                    # Unit tests with dependency injection
+│   │   ├── test_main.py         # Flask app tests
+│   │   ├── test_encryption.py   # Encryption tests
+│   │   └── test_message_retrieval.py # Message API tests
+│   └── docker/                  # Docker integration tests
+│       └── test_integration_docker.py # Container tests
+├── scripts/                      # Deployment and setup scripts
+│   ├── deploy.sh               # Deployment automation
+│   └── setup-gcp-project.sh    # GCP project setup
 ├── docs/                         # Documentation
-│   └── DOCKER_TESTING.md        # Docker testing guide
-└── config/                       # Configuration files
-    └── local.env                 # Local environment template
+│   ├── ARCHITECTURE.md         # System architecture
+│   ├── TESTING.md              # Testing guide
+│   ├── DEPLOYMENT_GUIDE.md     # Deployment instructions
+│   └── DEPENDENCY_INJECTION_REFACTOR.md # Architecture details
+└── config/                        # Configuration files
+    └── local.env                # Local environment template
 ```
 
 ## 🔐 **Security Considerations**
@@ -250,77 +253,81 @@ TelegramGroupie/
 - Each message has unique encryption keys and initialization vectors
 - Decryption only occurs during authorized retrieval
 
+### **Clean Architecture Security**
+- **Zero conditional logic** - No test code in production builds
+- **Service isolation** - Production and test implementations completely separate
+- **Automatic injection** - Environment detection prevents configuration errors
+
 ### **Authentication**
 - Webhook endpoints protected by secret token validation
 - Google Cloud IAM controls access to encryption keys
 - No sensitive data in logs or error messages
-
-### **Testing Security**
-- Mock implementations maintain same security patterns
-- Test data uses realistic encryption structures
-- No production credentials in test environments
 
 ## 📊 **Performance**
 
 ### **Benchmarks**
 - **Message Processing**: ~100 messages/second
 - **Batch Retrieval**: 500 messages in ~2 seconds
-- **Docker Startup**: ~3 seconds in testing mode
+- **Test Service Startup**: <1 second (dependency injection)
 - **API Response Time**: <100ms for health checks
+
+### **Testing Performance**
+| Test Type | Duration | Use Case |
+|-----------|----------|----------|
+| **Unit Tests** | ~1-2s | Development & CI (automatic service injection) |
+| **Docker Tests** | ~30s | Integration validation with containers |
 
 ### **Scaling**
 - Firestore auto-scales for high throughput
 - Stateless Flask app supports horizontal scaling
-- KMS encryption adds ~10ms overhead per message
+- Dependency injection enables efficient resource usage
 
 ## 🧑‍💻 **Development**
 
 ### **Code Style**
 ```bash
-# Format code
-make format
+# Format and lint code
+ruff check . --fix
 
-# Lint code
+# Run all quality checks
 make lint
 
 # Type checking
-make type-check
+mypy .
+```
 
-# All quality checks
-make check
+### **Development Workflow**
+```bash
+# Local development with test services
+APP_ENV=test python main.py
+
+# Test your changes
+APP_ENV=test python -m pytest tests/unit/ -v
+
+# Verify with Docker
+docker-compose -f docker-compose.test.yml up --build
 ```
 
 ### **Adding Features**
-1. **Write tests first** (TDD approach)
-2. **Update mock implementations** for new Google Cloud features
-3. **Add Docker tests** for integration scenarios
-4. **Update documentation** and diagrams
-
-### **Debugging**
-```bash
-# Local development with debug
-FLASK_DEBUG=true TESTING=true python main.py
-
-# Docker container logs
-docker logs <container_name>
-
-# Test debugging
-python -m pytest tests/ -v -s --tb=long
-```
+1. **Define interfaces** in `interfaces.py`
+2. **Implement production version** in `implementations/production.py`
+3. **Implement test version** in `implementations/test.py`
+4. **Write tests** using automatic service injection
+5. **Update documentation**
 
 ## 📈 **Monitoring & Observability**
 
 - **Health Checks**: `/healthz` endpoint for load balancer probes
 - **Structured Logging**: JSON logs for cloud monitoring
 - **Error Tracking**: Exception logging with context
-- **Metrics**: Message processing rates and error rates
+- **Service Metrics**: Database and encryption service performance
 
 ## 🤝 **Contributing**
 
 1. **Fork** the repository
 2. **Create** a feature branch
-3. **Write tests** for your changes
-4. **Ensure** all tests pass: `make test && make docker-test`
+3. **Write tests** with dependency injection
+4. **Ensure** all tests pass: `make test-all`
 5. **Submit** a pull request
 
 ## 📄 **License**
@@ -330,30 +337,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🚨 **Support**
 
 - **Documentation**: Check `docs/` directory
+- **Architecture**: See `docs/DEPENDENCY_INJECTION_REFACTOR.md`
 - **Issues**: Create GitHub issues for bugs
 - **Security**: See `SECURITY.md` for reporting vulnerabilities
 
 ---
 
-**Built with ❤️ for secure, scalable messaging infrastructure**
-
-### **Performance Optimizations**
-The project now offers **multiple testing speed tiers**:
-
-| Test Type | Duration | Use Case |
-|-----------|----------|----------|
-| **Unit Tests** | ~1-2s | Development & CI |
-| **Fast Docker** | ~6-8s | Quick integration validation |
-| **Full Docker** | ~20-25s | Complete integration testing |
-
-**Major optimizations implemented:**
-- ✅ **Eliminated unnecessary Firestore emulator** - was taking 40+ seconds
-- ✅ **Single-container fast tests** - bypasses Docker Compose overhead
-- ✅ **Optimized health checks** - faster startup detection
-- ✅ **Intelligent cleanup** - preserves containers for debugging when needed
-
-**Before vs After:**
-- Original Docker tests: **53+ seconds**
-- Optimized Docker tests: **24 seconds** (54% faster)
-- Ultra-fast Docker tests: **6 seconds** (89% faster!)
-# Integration tests are now passing
+**Built with ❤️ using clean dependency injection architecture for secure, scalable messaging infrastructure**
