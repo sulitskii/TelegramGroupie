@@ -23,7 +23,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - TESTING=false  # Use real services with emulator
+      - TESTING=true  # Use mock services to avoid GCP credentials issues
       - GCP_PROJECT_ID=test-project
       - WEBHOOK_SECRET=test_webhook_secret_123
       - TELEGRAM_TOKEN=test_token_123

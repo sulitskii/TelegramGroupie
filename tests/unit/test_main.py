@@ -7,7 +7,7 @@ webhook processing, and message handling using mocks for external dependencies.
 
 import json
 import sys
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -76,12 +76,12 @@ def test_webhook_invalid_method(client):
 
 def test_webhook_valid_request(client, mock_telegram_update):
     """Test webhook endpoint with valid request."""
-    
+
     # Mock the encryption and database operations
     with patch("main.encryption") as mock_encryption, \
          patch("main.db") as mock_db, \
          patch("main.telegram_bot") as mock_bot:
-        
+
         # Set up mocks
         mock_encryption.encrypt_message.return_value = {
             "ciphertext": "encrypted_test",
@@ -89,17 +89,17 @@ def test_webhook_valid_request(client, mock_telegram_update):
             "iv": "test_iv",
             "salt": "test_salt"
         }
-        
+
         mock_collection = Mock()
         mock_db.collection.return_value = mock_collection
         mock_collection.add.return_value = (None, Mock())
-        
+
         mock_bot.send_message = AsyncMock()
-        
+
         # Mock the TESTING_MODE to False so it processes the webhook
         with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
              patch("main.TESTING_MODE", False):
-            
+
             response = client.post(
                 "/webhook/test-secret",
                 data=json.dumps(mock_telegram_update),
@@ -124,7 +124,7 @@ def test_webhook_testing_mode(client, mock_telegram_update):
     """Test webhook endpoint in testing mode."""
     with patch.dict("os.environ", {"WEBHOOK_SECRET": "test-secret"}), \
          patch("main.TESTING_MODE", True):
-        
+
         response = client.post(
             "/webhook/test-secret",
             data=json.dumps(mock_telegram_update),
