@@ -30,8 +30,9 @@ _service_container = None
 _batch_size = 500
 
 
-def get_services():
+def _get_service_container():
     """Get the current service container."""
+    global _service_container  # noqa: PLW0602
     if _service_container is None:
         raise RuntimeError("Service container not initialized")
     return _service_container
@@ -56,7 +57,7 @@ def _webhook(secret):
         )
 
         # Get services from container (no conditional logic!)
-        service_container = get_services()
+        service_container = _get_service_container()
         message_handler = service_container.get_message_handler()
         update_parser = service_container.get_telegram_update_parser()
 
@@ -137,7 +138,7 @@ def _get_messages():
     """Retrieve messages with optional filtering."""
     try:
         # Get services from container
-        service_container = get_services()
+        service_container = _get_service_container()
         db_client = service_container.get_database_client()
         encryption_service = service_container.get_encryption_service()
         field_filter_factory = service_container.get_field_filter_factory()
@@ -183,7 +184,7 @@ def _process_messages_batch():
     """Process messages in batch."""
     try:
         # Get services from container
-        service_container = get_services()
+        service_container = _get_service_container()
         db_client = service_container.get_database_client()
         encryption_service = service_container.get_encryption_service()
         field_filter_factory = service_container.get_field_filter_factory()
@@ -216,7 +217,7 @@ def _process_messages_batch():
 
 def create_app(environment: str | None = None) -> Flask:
     """Application factory that creates and configures the Flask app."""
-    global _service_container
+    global _service_container  # noqa: PLW0603
     app = Flask(__name__)
 
     # Initialize service container with dependency injection
